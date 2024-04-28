@@ -1,0 +1,120 @@
+#@ project_name = 'gke-kubeconfiger'
+#@ description = 'Setup kubeconfigs for all accessible GKE clusters.'
+#@ maintainer = 'German Lashevich <german.lashevich@gmail.com>'
+#@ url = 'https://github.com/zebradil/gke-kubeconfiger'
+#@ committer_name = 'Zebradil Bot'
+#@ committer_email = 'german.lashevich+github-zebradil-bot@gmail.com'
+#@ targets = [
+#@   ("linux", "amd64", ""),
+#@   ("linux", "arm64", ""),
+#@   ("darwin", "amd64", ""),
+#@   ("darwin", "arm64", ""),
+#@   ("windows", "amd64", ""),
+#@ ]
+#@ docker_targets = [
+#@   ("linux", "amd64", ""),
+#@   ("linux", "arm64", ""),
+#@ ]
+#@ versions = [
+#@   '{{ .Tag }}',
+#@   '{{ .Major }}',
+#@   '{{ .Major }}.{{ .Minor }}',
+#@   'latest',
+#@ ]
+
+#@ base_image = 'ghcr.io/zebradil/' + project_name
+
+#@ def make_target(os, arch, arm):
+#@   target = os + "_" + arch
+#@   if arm:
+#@     target += "_" + arm
+#@   end
+#@   return target
+#@ end
+
+#@ def make_image(version, os, arch, arm):
+#@   image = base_image + ":" + version + "-" + os + "-" + arch
+#@   if arm:
+#@     image += "-" + arm
+#@   end
+#@   return image
+#@ end
+
+#@ def make_platform(os, arch, arm):
+#@   platform = "--platform=" + os + "/" + arch
+#@   if arm:
+#@     platform += "/" + arm
+#@   end
+#@   return platform
+#@ end
+
+---
+project_name: #@ project_name
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - binary: #@ project_name
+    env:
+      - CGO_ENABLED=0
+    targets:
+      #@ for/end os, arch, arm in targets:
+      -  #@ make_target(os, arch, arm)
+archives:
+  - name_template:
+      "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+aurs:
+  - name: #@ project_name + "-bin"
+    homepage: #@ url
+    description: #@ description
+    maintainers:
+      -  #@ maintainer
+    license: "MIT"
+    private_key: "{{ .Env.AUR_SSH_KEY }}"
+    git_url: #@ "ssh://aur@aur.archlinux.org/{}-bin.git".format(project_name)
+    #@yaml/text-templated-strings
+    package: |-
+      BIN=(@= project_name @)
+
+      install -Dm755 ./$BIN -t "${pkgdir}/usr/bin"
+    commit_author:
+      name: #@ committer_name
+      email: #@ committer_email
+nfpms:
+  - vendor: Zebradil
+    homepage: #@ url
+    maintainer: #@ maintainer
+    description: #@ description
+    license: MIT
+    formats:
+      - apk
+      - deb
+      - rpm
+dockers:
+  #@ for/end os, arch, arm in docker_targets:
+  - goos: #@ os
+    goarch: #@ arch
+    #@ if/end arm:
+    goarm: #@ arm
+    image_templates:
+      #@ for/end version in versions:
+      -  #@ make_image(version, os, arch, arm)
+    use: buildx
+    build_flag_templates:
+      -  #@ make_platform(os, arch, arm)
+docker_manifests:
+  #@ for/end version in versions:
+  - name_template: #@ base_image + ":" + version
+    image_templates:
+      #@ for/end os, arch, arm in docker_targets:
+      -  #@ make_image(version, os, arch, arm)

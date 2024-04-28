@@ -1,0 +1,90 @@
+project_name: gke-kubeconfiger
+before:
+  hooks:
+  - go mod tidy
+builds:
+- binary: gke-kubeconfiger
+  env:
+  - CGO_ENABLED=0
+  targets:
+  - linux_amd64
+  - linux_arm64
+  - darwin_amd64
+  - darwin_arm64
+  - windows_amd64
+archives:
+- name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+  format_overrides:
+  - goos: windows
+    format: zip
+  files:
+  - LICENSE
+  - README.md
+checksum:
+  name_template: checksums.txt
+snapshot:
+  name_template: '{{ incpatch .Version }}-next'
+aurs:
+- name: gke-kubeconfiger-bin
+  homepage: https://github.com/zebradil/gke-kubeconfiger
+  description: Setup kubeconfigs for all accessible GKE clusters.
+  maintainers:
+  - German Lashevich <german.lashevich@gmail.com>
+  license: MIT
+  private_key: '{{ .Env.AUR_SSH_KEY }}'
+  git_url: ssh://aur@aur.archlinux.org/gke-kubeconfiger-bin.git
+  package: |-
+    BIN=gke-kubeconfiger
+
+    install -Dm755 ./$BIN -t "${pkgdir}/usr/bin"
+  commit_author:
+    name: Zebradil Bot
+    email: german.lashevich+github-zebradil-bot@gmail.com
+nfpms:
+- vendor: Zebradil
+  homepage: https://github.com/zebradil/gke-kubeconfiger
+  maintainer: German Lashevich <german.lashevich@gmail.com>
+  description: Setup kubeconfigs for all accessible GKE clusters.
+  license: MIT
+  formats:
+  - apk
+  - deb
+  - rpm
+dockers:
+- goos: linux
+  goarch: amd64
+  image_templates:
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Tag }}-linux-amd64
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}-linux-amd64
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}.{{ .Minor }}-linux-amd64
+  - ghcr.io/zebradil/gke-kubeconfiger:latest-linux-amd64
+  use: buildx
+  build_flag_templates:
+  - --platform=linux/amd64
+- goos: linux
+  goarch: arm64
+  image_templates:
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Tag }}-linux-arm64
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}-linux-arm64
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}.{{ .Minor }}-linux-arm64
+  - ghcr.io/zebradil/gke-kubeconfiger:latest-linux-arm64
+  use: buildx
+  build_flag_templates:
+  - --platform=linux/arm64
+docker_manifests:
+- name_template: ghcr.io/zebradil/gke-kubeconfiger:{{ .Tag }}
+  image_templates:
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Tag }}-linux-amd64
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Tag }}-linux-arm64
+- name_template: ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}
+  image_templates:
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}-linux-amd64
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}-linux-arm64
+- name_template: ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}.{{ .Minor }}
+  image_templates:
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}.{{ .Minor }}-linux-amd64
+  - ghcr.io/zebradil/gke-kubeconfiger:{{ .Major }}.{{ .Minor }}-linux-arm64
+- name_template: ghcr.io/zebradil/gke-kubeconfiger:latest
+  image_templates:
+  - ghcr.io/zebradil/gke-kubeconfiger:latest-linux-amd64
+  - ghcr.io/zebradil/gke-kubeconfiger:latest-linux-arm64

@@ -1,0 +1,54 @@
+---
+version: "3"
+
+silent: true
+
+vars:
+  BIN_NAME: "gke-kubeconfiger"
+
+tasks:
+  default: ${GOTASK_BIN:-task} --list
+
+  go:fmt:
+    desc: Format the code
+    cmds:
+      - goimports-reviser -rm-unused -set-alias -format ./...
+      - gofumpt -w .
+
+  go:lint:golangci:
+    cmds:
+      - golangci-lint run
+
+  go:lint:vet:
+    cmds:
+      - go vet ./...
+
+  go:lint:sec:
+    cmds:
+      - gosec ./...
+
+  go:lint:
+    desc: Lint the code
+    deps:
+      - go:lint:golangci
+      - go:lint:vet
+      - go:lint:sec
+
+  go:build:
+    desc: Build the binary
+    cmds:
+      - mkdir -p bin
+      - goreleaser build --snapshot --clean --single-target --output
+        bin/{{.BIN_NAME}}
+
+  go:run:
+    desc: Run the binary
+    deps:
+      - go:build
+    cmds:
+      - bin/{{.BIN_NAME}} {{.CLI_ARGS}}
+
+  misc:build:goreleaser-config:
+    desc: Renders .gorleaser.yml from .goreleaser.ytt.yml
+    cmds:
+      - ytt -f .goreleaser.ytt.yml > .goreleaser.yml
