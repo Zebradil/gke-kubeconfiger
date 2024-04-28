@@ -24,25 +24,25 @@ apiVersion: v1
 kind: Config
 clusters:
 - cluster:
-		certificate-authority-data: {{ .CertificateAuthorityData }}
-		server: {{ .Server }}
-	name: {{ $longID }}
+    certificate-authority-data: {{ .CertificateAuthorityData }}
+    server: {{ .Server }}
+  name: {{ $longID }}
 contexts:
 - context:
-		cluster: {{ $longID }}
-		user: {{ $longID }}
-	name: <CONTEXT_NAME>
+    cluster: {{ $longID }}
+    user: {{ $longID }}
+  name: <CONTEXT_NAME>
 preferences: {}
 users:
 - name: {{ $longID }}
-	user:
-		exec:
-			apiVersion: client.authentication.k8s.io/v1beta1
-			command: gke-gcloud-auth-plugin
-			installHint:
-	      Install gke-gcloud-auth-plugin for use with kubectl by following
-	      https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin
-			provideClusterInfo: true
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      command: gke-gcloud-auth-plugin
+      installHint:
+        Install gke-gcloud-auth-plugin for use with kubectl by following
+        https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin
+      provideClusterInfo: true
 `
 
 func main() {
