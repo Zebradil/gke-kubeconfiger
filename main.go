@@ -17,7 +17,7 @@ import (
 	su "google.golang.org/api/serviceusage/v1"
 )
 
-const KUBECONFIG_TEMPLATE = `
+const KubeconfigBaseTemplate = `
 {{- $longID := printf "gke_%s_%s_%s" .ProjectID .Location .ClusterName -}}
 ---
 apiVersion: v1
@@ -56,7 +56,7 @@ func main() {
 		contextNameTpl = *renameTpl
 	}
 
-	kubeconfigTemplate, err := template.New("kubeconfig").Parse(strings.Replace(KUBECONFIG_TEMPLATE, "<CONTEXT_NAME>", contextNameTpl, -1))
+	kubeconfigTemplate, err := template.New("kubeconfig").Parse(strings.ReplaceAll(KubeconfigBaseTemplate, "<CONTEXT_NAME>", contextNameTpl))
 	if err != nil {
 		log.Fatalf("Failed to parse kubeconfig template: %v", err)
 	}
