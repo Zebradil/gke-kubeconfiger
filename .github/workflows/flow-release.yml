@@ -21,11 +21,11 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
         with:
           persist-credentials: false
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
+        uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6
         with:
           gpg_private_key: ${{ secrets.ZEBRADIL_BOT_GPG_PRIVATE_KEY }}
           git_user_signingkey: true
@@ -44,18 +44,18 @@ jobs:
             @semantic-release/git
       - name: Install GoReleaser
         if: steps.semantic.outputs.new_release_published == 'true'
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@7ec5c2b0c6cdda6e8bbb49444bc797dd33d74dd8 # v5
         with:
           install-only: true
       - name: Setup QEMU
         if: steps.semantic.outputs.new_release_published == 'true'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3
       - name: Setup Docker Buildx
         if: steps.semantic.outputs.new_release_published == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3
       - name: Login to GHCR
         if: steps.semantic.outputs.new_release_published == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
