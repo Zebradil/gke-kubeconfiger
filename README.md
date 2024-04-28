@@ -4,11 +4,12 @@ Setup kubeconfigs for all accessible GKE clusters. It is the same as running
 `gcloud container clusters get-credentials` for every cluster in every project
 but faster.
 
-> [!NOTE] This tool is in experimental stage. Its behavior and interface _will_
-> change.
+> [!NOTE]  
+> This tool is in experimental stage. Its behavior and interface _will_ change.
 
-> [!IMPORTANT] Any help is appreciated. If you have any ideas, suggestions, or
-> issues, please open an issue or a pull request.
+> [!IMPORTANT]  
+> Any help is appreciated. If you have any ideas, suggestions, or issues, please
+> open an issue or a pull request.
 
 ## Usage
 
