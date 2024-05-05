@@ -1,3 +1,16 @@
+# [0.1.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.0.4...0.1.0) (2024-05-05)
+
+
+### Bug Fixes
+
+* use raw project ID strings ([480c794](https://github.com/Zebradil/gke-kubeconfiger/commit/480c7946ce01017f91097d201fa381206610988b))
+
+
+### Features
+
+* add option to provide projects list ([f4b2faa](https://github.com/Zebradil/gke-kubeconfiger/commit/f4b2faa084d9b627c0ba35383f5b0cf3595a4a9e)), closes [#5](https://github.com/Zebradil/gke-kubeconfiger/issues/5)
+* migrate UI to cobra and viper ([364d3fa](https://github.com/Zebradil/gke-kubeconfiger/commit/364d3fae213c28262f91234d7c8d2768b0ae4000))
+
 ## [0.0.4](https://github.com/Zebradil/gke-kubeconfiger/compare/0.0.3...0.0.4) (2024-04-30)
 
 
