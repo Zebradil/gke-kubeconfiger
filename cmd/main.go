@@ -20,6 +20,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+type credentialsData struct {
+	CertificateAuthorityData string
+	ClusterName              string
+	Location                 string
+	ProjectID                string
+	Server                   string
+}
+
 const KubeconfigBaseTemplate = `
 {{- $longID := printf "gke_%s_%s_%s" .ProjectID .Location .ClusterName -}}
 ---
@@ -157,7 +165,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	projects := make(chan string, batchSize)
 	filteredProjects := make(chan string, batchSize)
-	completed := make(chan bool)
+	credentials := make(chan credentialsData, batchSize)
 
 	if len(preselectedProjects) > 0 {
 		for _, project := range preselectedProjects {
@@ -169,9 +177,10 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	go filterProjects(projects, filteredProjects)
-	go getCredentials(filteredProjects, kubeconfigTemplate, completed)
+	go getCredentials(filteredProjects, credentials)
 
-	for range completed {
+	for data := range credentials {
+		writeToFile(data, kubeconfigTemplate)
 	}
 }
 
@@ -217,7 +226,7 @@ func filterProjects(in <-chan string, out chan<- string) {
 	close(out)
 }
 
-func getCredentials(in <-chan string, kubeconfigTemplate *template.Template, completed chan<- bool) {
+func getCredentials(in <-chan string, out chan<- credentialsData) {
 	ctx := context.Background()
 	containerService, err := cnt.NewService(ctx)
 	if err != nil {
@@ -235,28 +244,12 @@ func getCredentials(in <-chan string, kubeconfigTemplate *template.Template, com
 				wg.Add(1)
 				go func(cluster *cnt.Cluster) {
 					fmt.Printf("Cluster: %s (%s)\n", cluster.Name, cluster.Location)
-					endpoint := fmt.Sprintf("https://%s", cluster.Endpoint)
-					cert := cluster.MasterAuth.ClusterCaCertificate
-					kubeconfig := &bytes.Buffer{}
-					err = kubeconfigTemplate.Execute(kubeconfig, map[string]string{
-						"CertificateAuthorityData": cert,
-						"Server":                   endpoint,
-						"ProjectID":                project,
-						"Location":                 cluster.Location,
-						"ClusterName":              cluster.Name,
-					})
-					if err != nil {
-						log.Fatalf("Failed to execute kubeconfig template: %v", err)
-					}
-					filename := fmt.Sprintf("%s_%s_%s.yaml", project, cluster.Location, cluster.Name)
-					out, err := os.Create(filename)
-					if err != nil {
-						log.Fatalf("Failed to create file: %v", err)
-					}
-					defer out.Close()
-					_, err = io.Copy(out, kubeconfig)
-					if err != nil {
-						log.Fatalf("Failed to write file: %v", err)
+					out <- credentialsData{
+						CertificateAuthorityData: cluster.MasterAuth.ClusterCaCertificate,
+						ClusterName:              cluster.Name,
+						Location:                 cluster.Location,
+						ProjectID:                project,
+						Server:                   fmt.Sprintf("https://%s", cluster.Endpoint),
 					}
 					wg.Done()
 				}(cluster)
@@ -265,5 +258,29 @@ func getCredentials(in <-chan string, kubeconfigTemplate *template.Template, com
 		}(project)
 	}
 	wg.Wait()
-	close(completed)
+	close(out)
+}
+
+func writeToFile(data credentialsData, kubeconfigTemplate *template.Template) {
+	kubeconfig := &bytes.Buffer{}
+	err := kubeconfigTemplate.Execute(kubeconfig, map[string]string{
+		"CertificateAuthorityData": data.CertificateAuthorityData,
+		"Server":                   data.Server,
+		"ProjectID":                data.ProjectID,
+		"Location":                 data.Location,
+		"ClusterName":              data.ClusterName,
+	})
+	if err != nil {
+		log.Fatalf("Failed to execute kubeconfig template: %v", err)
+	}
+	filename := fmt.Sprintf("%s_%s_%s.yaml", data.ProjectID, data.Location, data.ClusterName)
+	out, err := os.Create(filename)
+	if err != nil {
+		log.Fatalf("Failed to create file: %v", err)
+	}
+	defer out.Close()
+	_, err = io.Copy(out, kubeconfig)
+	if err != nil {
+		log.Fatalf("Failed to write file: %v", err)
+	}
 }
