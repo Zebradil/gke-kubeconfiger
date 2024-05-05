@@ -107,6 +107,14 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		Flags().
+		Int("batch-size", 10, "Batch size")
+
+	rootCmd.
+		Flags().
+		String("log-level", "info", "Sets logging level: trace, debug, info, warning, error, fatal, panic")
+
+	rootCmd.
+		Flags().
 		StringSlice("projects", []string{}, "Projects to filter by")
 
 	rootCmd.
@@ -116,14 +124,6 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 	rootCmd.
 		Flags().
 		String("rename-tpl", "{{ .ProjectID }}/{{ .Location }}/{{ .ClusterName }}", "Rename template")
-
-	rootCmd.
-		Flags().
-		String("log-level", "info", "Sets logging level: trace, debug, info, warning, error, fatal, panic")
-
-	rootCmd.
-		Flags().
-		Int("batch-size", 10, "Batch size")
 
 	err := viper.BindPFlags(rootCmd.Flags())
 	if err != nil {
