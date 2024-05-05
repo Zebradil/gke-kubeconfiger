@@ -105,10 +105,6 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 		PersistentFlags().
 		StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gke-kubeconfiger.yaml)")
 
-	// rootCmd.
-	// 	Flags().
-	// 	StringSlice("projects", []string{}, "Projects to filter by.")
-
 	rootCmd.
 		Flags().
 		Bool("rename", false, "Rename kubeconfig contexts")
@@ -119,7 +115,7 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		Flags().
-		String("log-level", "info", "Sets logging level: trace, debug, info, warning, error, fatal, panic.")
+		String("log-level", "info", "Sets logging level: trace, debug, info, warning, error, fatal, panic")
 
 	rootCmd.
 		Flags().
@@ -140,9 +136,9 @@ func run(cmd *cobra.Command, args []string) {
 		log.Debug("No config file used")
 	}
 
+	batchSize := viper.GetInt("batch-size")
 	rename := viper.GetBool("rename")
 	renameTpl := viper.GetString("rename-tpl")
-	batchSize := viper.GetInt("batch-size")
 
 	contextNameTpl := "{{ $longID }}"
 	if rename {
@@ -154,10 +150,8 @@ func run(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to parse kubeconfig template: %v", err)
 	}
 
-	return
-
-	projects := make(chan *crm.Project, batchSize)
-	filteredProjects := make(chan *crm.Project, batchSize)
+	projects := make(chan string, batchSize)
+	filteredProjects := make(chan string, batchSize)
 	completed := make(chan bool)
 
 	go getProjects(projects)
@@ -168,7 +162,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 }
 
-func getProjects(out chan<- *crm.Project) {
+func getProjects(out chan<- string) {
 	ctx := context.Background()
 	crmService, err := crm.NewService(ctx)
 	if err != nil {
@@ -179,12 +173,12 @@ func getProjects(out chan<- *crm.Project) {
 		log.Fatalf("Failed to list projects: %v", err)
 	}
 	for _, project := range projects.Projects {
-		out <- project
+		out <- project.ProjectId
 	}
 	close(out)
 }
 
-func filterProjects(in <-chan *crm.Project, out chan<- *crm.Project) {
+func filterProjects(in <-chan string, out chan<- string) {
 	ctx := context.Background()
 	suService, err := su.NewService(ctx)
 	if err != nil {
@@ -194,9 +188,9 @@ func filterProjects(in <-chan *crm.Project, out chan<- *crm.Project) {
 	wg := sync.WaitGroup{}
 	for project := range in {
 		wg.Add(1)
-		go func(project *crm.Project) {
-			fmt.Printf("Project: %s (%s)\n", project.Name, project.ProjectId)
-			containerServiceRes, err := suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project.ProjectId)).Do()
+		go func(project string) {
+			fmt.Printf("ProjectID: %s\n", project)
+			containerServiceRes, err := suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
 			if err != nil {
 				log.Fatalf("Failed to get container service: %v", err)
 			}
@@ -210,7 +204,7 @@ func filterProjects(in <-chan *crm.Project, out chan<- *crm.Project) {
 	close(out)
 }
 
-func getCredentials(in <-chan *crm.Project, kubeconfigTemplate *template.Template, completed chan<- bool) {
+func getCredentials(in <-chan string, kubeconfigTemplate *template.Template, completed chan<- bool) {
 	ctx := context.Background()
 	containerService, err := cnt.NewService(ctx)
 	if err != nil {
@@ -219,8 +213,8 @@ func getCredentials(in <-chan *crm.Project, kubeconfigTemplate *template.Templat
 	wg := sync.WaitGroup{}
 	for project := range in {
 		wg.Add(1)
-		go func(project *crm.Project) {
-			clusters, err := containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project.ProjectId)).Do()
+		go func(project string) {
+			clusters, err := containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project)).Do()
 			if err != nil {
 				log.Fatalf("Failed to list clusters: %v", err)
 			}
@@ -234,14 +228,14 @@ func getCredentials(in <-chan *crm.Project, kubeconfigTemplate *template.Templat
 					err = kubeconfigTemplate.Execute(kubeconfig, map[string]string{
 						"CertificateAuthorityData": cert,
 						"Server":                   endpoint,
-						"ProjectID":                project.ProjectId,
+						"ProjectID":                project,
 						"Location":                 cluster.Location,
 						"ClusterName":              cluster.Name,
 					})
 					if err != nil {
 						log.Fatalf("Failed to execute kubeconfig template: %v", err)
 					}
-					filename := fmt.Sprintf("%s_%s_%s.yaml", project.ProjectId, cluster.Location, cluster.Name)
+					filename := fmt.Sprintf("%s_%s_%s.yaml", project, cluster.Location, cluster.Name)
 					out, err := os.Create(filename)
 					if err != nil {
 						log.Fatalf("Failed to create file: %v", err)
