@@ -107,6 +107,10 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		Flags().
+		StringSlice("projects", []string{}, "Projects to filter by")
+
+	rootCmd.
+		Flags().
 		Bool("rename", false, "Rename kubeconfig contexts")
 
 	rootCmd.
@@ -137,6 +141,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	batchSize := viper.GetInt("batch-size")
+	preselectedProjects := viper.GetStringSlice("projects")
 	rename := viper.GetBool("rename")
 	renameTpl := viper.GetString("rename-tpl")
 
@@ -154,7 +159,15 @@ func run(cmd *cobra.Command, args []string) {
 	filteredProjects := make(chan string, batchSize)
 	completed := make(chan bool)
 
-	go getProjects(projects)
+	if len(preselectedProjects) > 0 {
+		for _, project := range preselectedProjects {
+			projects <- project
+		}
+		close(projects)
+	} else {
+		go getProjects(projects)
+	}
+
 	go filterProjects(projects, filteredProjects)
 	go getCredentials(filteredProjects, kubeconfigTemplate, completed)
 
