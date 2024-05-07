@@ -1,3 +1,10 @@
+## [0.1.1](https://github.com/Zebradil/gke-kubeconfiger/compare/0.1.0...0.1.1) (2024-05-07)
+
+
+### Bug Fixes
+
+* **deps:** update module google.golang.org/api to v0.178.0 ([#14](https://github.com/Zebradil/gke-kubeconfiger/issues/14)) ([ec9e940](https://github.com/Zebradil/gke-kubeconfiger/commit/ec9e940b20b9ebc29cca4e1e07628e1613ebd12d))
+
 # [0.1.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.0.4...0.1.0) (2024-05-05)
 
 
