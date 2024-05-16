@@ -167,7 +167,7 @@ func run(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to create directory: %v", err)
 	}
 
-	contextNameTpl := `{{ printf "gke_%s_%s_%s" .ProjectID .Location .ClusterName }}`
+	contextNameTpl := `gke_{{ .ProjectID }}_{{ .Location }}_{{ .ClusterName }}`
 	if rename {
 		contextNameTpl = renameTpl
 	}
