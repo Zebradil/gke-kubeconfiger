@@ -306,31 +306,39 @@ func inflateKubeconfig(credentials <-chan credentialsData, kubeconfig map[string
 }
 
 func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credentialsData, clusterName string) {
-	kubeconfig["clusters"] = append(kubeconfig["clusters"].([]interface{}), map[string]interface{}{
-		"cluster": map[string]interface{}{
-			"certificate-authority-data": data.CertificateAuthorityData,
-			"server":                     data.Server,
-		},
-		"name": clusterName,
+	replaceOrAppend(kubeconfig, "clusters", clusterName, "cluster", map[string]interface{}{
+		"certificate-authority-data": data.CertificateAuthorityData,
+		"server":                     data.Server,
 	})
-	kubeconfig["contexts"] = append(kubeconfig["contexts"].([]interface{}), map[string]interface{}{
-		"context": map[string]interface{}{
-			"cluster": clusterName,
-			"user":    clusterName,
-		},
-		"name": clusterName,
+	replaceOrAppend(kubeconfig, "contexts", clusterName, "context", map[string]interface{}{
+		"cluster": clusterName,
+		"user":    clusterName,
 	})
-	kubeconfig["users"] = append(kubeconfig["users"].([]interface{}), map[string]interface{}{
-		"name": clusterName,
-		"user": map[string]interface{}{
-			"exec": map[string]interface{}{
-				"apiVersion":         "client.authentication.k8s.io/v1beta1",
-				"command":            "gke-gcloud-auth-plugin",
-				"installHint":        "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin",
-				"provideClusterInfo": true,
-			},
+	replaceOrAppend(kubeconfig, "users", clusterName, "user", map[string]interface{}{
+		"exec": map[string]interface{}{
+			"apiVersion":         "client.authentication.k8s.io/v1beta1",
+			"command":            "gke-gcloud-auth-plugin",
+			"installHint":        "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin",
+			"provideClusterInfo": true,
 		},
 	})
+}
+
+func replaceOrAppend(kubeconfig map[string]interface{}, listName, itemName, key string, value interface{}) {
+	list := kubeconfig[listName].([]interface{})
+	for _, rawItem := range list {
+		item := rawItem.(map[string]interface{})
+		if item["name"] == itemName {
+			item[key] = value
+			return
+		}
+	}
+
+	list = append(list, map[string]interface{}{
+		"name": itemName,
+		key:    value,
+	})
+	kubeconfig[listName] = list
 }
 
 func writeKubeconfigToFile(kubeconfig io.Reader, filepath string) {
