@@ -7,8 +7,11 @@ import (
 	"html/template"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
+
+	yaml "gopkg.in/yaml.v3"
 
 	log "github.com/sirupsen/logrus"
 
@@ -27,36 +30,6 @@ type credentialsData struct {
 	ProjectID                string
 	Server                   string
 }
-
-const KubeconfigBaseTemplate = `
-{{- $longID := printf "gke_%s_%s_%s" .ProjectID .Location .ClusterName -}}
----
-apiVersion: v1
-kind: Config
-clusters:
-- cluster:
-    certificate-authority-data: {{ .CertificateAuthorityData }}
-    server: {{ .Server }}
-  name: {{ $longID }}
-contexts:
-- context:
-    cluster: {{ $longID }}
-    user: {{ $longID }}
-  name: <CONTEXT_NAME>
-preferences: {}
-users:
-- name: {{ $longID }}
-  user:
-    exec:
-      apiVersion: client.authentication.k8s.io/v1beta1
-      command: gke-gcloud-auth-plugin
-      installHint:
-        Install gke-gcloud-auth-plugin for use with kubectl by following
-        https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin
-      provideClusterInfo: true
-`
-
-const longDescription = `gke-kubeconfiger discovers GKE clusters and generates kubeconfig files for them.`
 
 var cfgFile string
 
@@ -92,8 +65,8 @@ func initConfig() {
 func NewRootCmd(version, commit, date string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:     "gke-kubeconfiger",
-		Short:   "Discovers GKE clusters and generates kubeconfig files for them.",
-		Long:    longDescription,
+		Short:   "Discovers GKE clusters and updates the KUBECONFIG file to include them",
+		Long:    "gke-kubeconfiger discovers GKE clusters and updates the KUBECONFIG file to include them.",
 		Args:    cobra.NoArgs,
 		Version: fmt.Sprintf("%s, commit %s, built at %s", version, commit, date),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -116,6 +89,10 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 	rootCmd.
 		Flags().
 		Int("batch-size", 10, "Batch size")
+
+	rootCmd.
+		Flags().
+		String("dest-dir", ".", "Destination directory to write kubeconfig files. If set, every kubeconfig will be written to a separate file")
 
 	rootCmd.
 		Flags().
@@ -148,19 +125,56 @@ func run(cmd *cobra.Command, args []string) {
 		log.Debug("No config file used")
 	}
 
+	var (
+		kubeconfig map[string]interface{}
+		err        error
+	)
+
 	batchSize := viper.GetInt("batch-size")
+	destDir := viper.GetString("dest-dir")
 	preselectedProjects := viper.GetStringSlice("projects")
 	rename := viper.GetBool("rename")
 	renameTpl := viper.GetString("rename-tpl")
+	split := viper.IsSet("dest-dir")
 
-	contextNameTpl := "{{ $longID }}"
+	var kubeconfigPath string
+	if !split {
+		if val, ok := os.LookupEnv("KUBECONFIG"); ok {
+			kubeconfigPath = val
+		} else if home, errHome := os.UserHomeDir(); errHome == nil {
+			kubeconfigPath = fmt.Sprintf("%s/.kube/config", home)
+		} else {
+			log.Warnf("Failed to get user home directory: %v", errHome)
+			kubeconfigPath = "kubeconfig.yaml"
+		}
+
+		// FIXME: implement file locking
+		// The kubeconfig file is read upfront to catch possible errors early,
+		// before making any API calls. This file is overwritten later, after
+		// all the data is collected. The longer it takes to collect the data,
+		// the higher the chance that the kubeconfig file will be modified by
+		// another process in the meantime. This can lead to data loss.
+		// To prevent this, the kubeconfig file should be locked at the same time
+		// as it is read, and the lock should be released only after the file is
+		// written back.
+		// There is currently no good library for file locking in Go, see the
+		// following issue for some options: https://github.com/golang/go/issues/33974
+		kubeconfig, err = unmarshalKubeconfigToMap(kubeconfigPath)
+		if err != nil {
+			log.Fatalf("Failed to unmarshal kubeconfig: %v", err)
+		}
+	} else if err = createDirectory(destDir); err != nil {
+		log.Fatalf("Failed to create directory: %v", err)
+	}
+
+	contextNameTpl := `{{ printf "gke_%s_%s_%s" .ProjectID .Location .ClusterName }}`
 	if rename {
 		contextNameTpl = renameTpl
 	}
 
-	kubeconfigTemplate, err := template.New("kubeconfig").Parse(strings.ReplaceAll(KubeconfigBaseTemplate, "<CONTEXT_NAME>", contextNameTpl))
+	contextNameTemplate, err := template.New("kubeconfig").Parse(contextNameTpl)
 	if err != nil {
-		log.Fatalf("Failed to parse kubeconfig template: %v", err)
+		log.Fatalf("Failed to parse context name template: %v", err)
 	}
 
 	projects := make(chan string, batchSize)
@@ -179,8 +193,11 @@ func run(cmd *cobra.Command, args []string) {
 	go filterProjects(projects, filteredProjects)
 	go getCredentials(filteredProjects, credentials)
 
-	for data := range credentials {
-		writeToFile(data, kubeconfigTemplate)
+	if split {
+		writeCredentialsToFile(credentials, destDir, contextNameTemplate)
+	} else {
+		inflateKubeconfig(credentials, kubeconfig)
+		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), kubeconfigPath)
 	}
 }
 
@@ -261,20 +278,63 @@ func getCredentials(in <-chan string, out chan<- credentialsData) {
 	close(out)
 }
 
-func writeToFile(data credentialsData, kubeconfigTemplate *template.Template) {
-	kubeconfig := &bytes.Buffer{}
-	err := kubeconfigTemplate.Execute(kubeconfig, map[string]string{
-		"CertificateAuthorityData": data.CertificateAuthorityData,
-		"Server":                   data.Server,
-		"ProjectID":                data.ProjectID,
-		"Location":                 data.Location,
-		"ClusterName":              data.ClusterName,
-	})
-	if err != nil {
-		log.Fatalf("Failed to execute kubeconfig template: %v", err)
+func writeCredentialsToFile(credentials <-chan credentialsData, destDir string, contextNameTemplate *template.Template) {
+	for data := range credentials {
+		contextNameBytes := &bytes.Buffer{}
+		err := contextNameTemplate.Execute(contextNameBytes, map[string]string{
+			"Server":      data.Server,
+			"ProjectID":   data.ProjectID,
+			"Location":    data.Location,
+			"ClusterName": data.ClusterName,
+		})
+		if err != nil {
+			log.Fatalf("Failed to execute kubeconfig template: %v", err)
+		}
+		filename := fmt.Sprintf("%s_%s_%s.yaml", data.ProjectID, data.Location, data.ClusterName)
+		filepath := filepath.Join(destDir, filename)
+		kubeconfig := getEmptyKubeconfig()
+		addCredentialsToKubeconfig(kubeconfig, data, contextNameBytes.String())
+		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), filepath)
 	}
-	filename := fmt.Sprintf("%s_%s_%s.yaml", data.ProjectID, data.Location, data.ClusterName)
-	out, err := os.Create(filename)
+}
+
+func inflateKubeconfig(credentials <-chan credentialsData, kubeconfig map[string]interface{}) {
+	for data := range credentials {
+		clusterName := fmt.Sprintf("gke_%s_%s_%s", data.ProjectID, data.Location, data.ClusterName)
+		addCredentialsToKubeconfig(kubeconfig, data, clusterName)
+	}
+}
+
+func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credentialsData, clusterName string) {
+	kubeconfig["clusters"] = append(kubeconfig["clusters"].([]interface{}), map[string]interface{}{
+		"cluster": map[string]interface{}{
+			"certificate-authority-data": data.CertificateAuthorityData,
+			"server":                     data.Server,
+		},
+		"name": clusterName,
+	})
+	kubeconfig["contexts"] = append(kubeconfig["contexts"].([]interface{}), map[string]interface{}{
+		"context": map[string]interface{}{
+			"cluster": clusterName,
+			"user":    clusterName,
+		},
+		"name": clusterName,
+	})
+	kubeconfig["users"] = append(kubeconfig["users"].([]interface{}), map[string]interface{}{
+		"name": clusterName,
+		"user": map[string]interface{}{
+			"exec": map[string]interface{}{
+				"apiVersion":         "client.authentication.k8s.io/v1beta1",
+				"command":            "gke-gcloud-auth-plugin",
+				"installHint":        "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin",
+				"provideClusterInfo": true,
+			},
+		},
+	})
+}
+
+func writeKubeconfigToFile(kubeconfig io.Reader, filepath string) {
+	out, err := os.Create(filepath)
 	if err != nil {
 		log.Fatalf("Failed to create file: %v", err)
 	}
@@ -283,4 +343,74 @@ func writeToFile(data credentialsData, kubeconfigTemplate *template.Template) {
 	if err != nil {
 		log.Fatalf("Failed to write file: %v", err)
 	}
+}
+
+func createDirectory(dir string) error {
+	if ok, err := isExist(dir); err != nil {
+		return err
+	} else if ok {
+		return nil
+	}
+
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		log.Errorf("Failed to create directory: %v", err)
+		return err
+	}
+	return nil
+}
+
+func isExist(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		log.Warnf("Unable to stat file: %v", err)
+		return false, nil
+	}
+	return false, err
+}
+
+func unmarshalKubeconfigToMap(filePath string) (map[string]interface{}, error) {
+	ok, err := isExist(filePath)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return getEmptyKubeconfig(), nil
+	}
+
+	file, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var config map[string]interface{}
+	err = yaml.Unmarshal(file, &config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func getEmptyKubeconfig() map[string]interface{} {
+	return map[string]interface{}{
+		"apiVersion":      "v1",
+		"clusters":        []interface{}{},
+		"contexts":        []interface{}{},
+		"current-context": "",
+		"kind":            "Config",
+		"preferences":     map[string]interface{}{},
+		"users":           []interface{}{},
+	}
+}
+
+func encodeKubeconfig(kubeconfig map[string]interface{}) *bytes.Buffer {
+	kubeconfigBytes := &bytes.Buffer{}
+	enc := yaml.NewEncoder(kubeconfigBytes)
+	enc.SetIndent(2)
+	if err := enc.Encode(kubeconfig); err != nil {
+		log.Fatalf("Failed to encode kubeconfig YAML: %v", err)
+	}
+	return kubeconfigBytes
 }
