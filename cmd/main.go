@@ -101,7 +101,7 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		Flags().
-		String("dest-dir", ".", "Destination directory to write kubeconfig files. If set, every kubeconfig will be written to a separate file")
+		String("dest-dir", ".", "Destination directory to write kubeconfig files.\nIf set, every kubeconfig will be written to a separate file")
 
 	rootCmd.
 		Flags().
