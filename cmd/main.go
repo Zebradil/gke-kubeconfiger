@@ -28,6 +28,7 @@ import (
 const userName = "gke-kubeconfiger"
 
 type credentialsData struct {
+	AuthPlugin               string
 	CertificateAuthorityData string
 	ClusterName              string
 	Location                 string
@@ -92,6 +93,10 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		Flags().
+		String("auth-plugin", "gke-gcloud-auth-plugin", "Name of the auth plugin to use in kubeconfig")
+
+	rootCmd.
+		Flags().
 		Int("batch-size", 10, "Batch size")
 
 	rootCmd.
@@ -134,6 +139,7 @@ func run(cmd *cobra.Command, args []string) {
 		err        error
 	)
 
+	authPlugin := viper.GetString("auth-plugin")
 	batchSize := viper.GetInt("batch-size")
 	destDir := viper.GetString("dest-dir")
 	preselectedProjects := viper.GetStringSlice("projects")
@@ -195,7 +201,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	go filterProjects(projects, filteredProjects)
-	go getCredentials(filteredProjects, credentials)
+	go getCredentials(filteredProjects, credentials, authPlugin)
 
 	if split {
 		writeCredentialsToFile(credentials, destDir, contextNameTemplate)
@@ -247,7 +253,7 @@ func filterProjects(in <-chan string, out chan<- string) {
 	close(out)
 }
 
-func getCredentials(in <-chan string, out chan<- credentialsData) {
+func getCredentials(in <-chan string, out chan<- credentialsData, authPlugin string) {
 	ctx := context.Background()
 	containerService, err := cnt.NewService(ctx)
 	if err != nil {
@@ -266,6 +272,7 @@ func getCredentials(in <-chan string, out chan<- credentialsData) {
 				go func(cluster *cnt.Cluster) {
 					fmt.Printf("Cluster: %s (%s)\n", cluster.Name, cluster.Location)
 					out <- credentialsData{
+						AuthPlugin:               authPlugin,
 						CertificateAuthorityData: cluster.MasterAuth.ClusterCaCertificate,
 						ClusterName:              cluster.Name,
 						Location:                 cluster.Location,
@@ -321,7 +328,7 @@ func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credenti
 	replaceOrAppend(kubeconfig, "users", userName, "user", map[string]interface{}{
 		"exec": map[string]interface{}{
 			"apiVersion":         "client.authentication.k8s.io/v1beta1",
-			"command":            "gke-gcloud-auth-plugin",
+			"command":            data.AuthPlugin,
 			"installHint":        "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin",
 			"provideClusterInfo": true,
 		},
