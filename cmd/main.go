@@ -23,6 +23,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Name of the user to use in kubeconfig entries.
+// The same user configuration is used for all clusters.
+const userName = "gke-kubeconfiger"
+
 type credentialsData struct {
 	CertificateAuthorityData string
 	ClusterName              string
@@ -312,9 +316,9 @@ func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credenti
 	})
 	replaceOrAppend(kubeconfig, "contexts", clusterName, "context", map[string]interface{}{
 		"cluster": clusterName,
-		"user":    clusterName,
+		"user":    userName,
 	})
-	replaceOrAppend(kubeconfig, "users", clusterName, "user", map[string]interface{}{
+	replaceOrAppend(kubeconfig, "users", userName, "user", map[string]interface{}{
 		"exec": map[string]interface{}{
 			"apiVersion":         "client.authentication.k8s.io/v1beta1",
 			"command":            "gke-gcloud-auth-plugin",
