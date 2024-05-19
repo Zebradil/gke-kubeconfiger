@@ -1,3 +1,10 @@
+## [0.2.1](https://github.com/Zebradil/gke-kubeconfiger/compare/0.2.0...0.2.1) (2024-05-19)
+
+
+### Bug Fixes
+
+* set more secure permissions on created kubeconfig files ([fbc9f39](https://github.com/Zebradil/gke-kubeconfiger/commit/fbc9f3988fa28e7cbb14baa2b92382ede515b033))
+
 # [0.2.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.1.5...0.2.0) (2024-05-17)
 
 
