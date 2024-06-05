@@ -49,6 +49,7 @@
 #@ end
 
 ---
+version: 2
 project_name: #@ project_name
 before:
   hooks:
@@ -61,8 +62,7 @@ builds:
       #@ for/end os, arch, arm in targets:
       -  #@ make_target(os, arch, arm)
 archives:
-  - name_template:
-      "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format_overrides:
       - goos: windows
         format: zip
