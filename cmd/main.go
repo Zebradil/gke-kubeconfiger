@@ -208,17 +208,12 @@ func run(cmd *cobra.Command, args []string) {
 
 	log.WithField("config", cfg).Debug("Configuration")
 
-	projects := make(chan string, cfg.BatchSize)
-	filteredProjects := make(chan string, cfg.BatchSize)
-	credentials := make(chan credentialsData, cfg.BatchSize)
+	projects := cfg.Projects
+	filteredProjects := make(chan string)
+	credentials := make(chan credentialsData)
 
-	if len(cfg.Projects) > 0 {
-		for _, project := range cfg.Projects {
-			projects <- project
-		}
-		close(projects)
-	} else {
-		go getProjects(projects)
+	if len(cfg.Projects) == 0 {
+		projects = getProjects()
 	}
 
 	go filterProjects(projects, filteredProjects)
@@ -232,7 +227,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 }
 
-func getProjects(out chan<- string) {
+func getProjects() []string {
 	ctx := context.Background()
 	crmService, err := crm.NewService(ctx)
 	if err != nil {
@@ -242,13 +237,14 @@ func getProjects(out chan<- string) {
 	if err != nil {
 		log.Fatalf("Failed to list projects: %v", err)
 	}
+	projectIDs := make([]string, 0, len(projects.Projects))
 	for _, project := range projects.Projects {
-		out <- project.ProjectId
+		projectIDs = append(projectIDs, project.ProjectId)
 	}
-	close(out)
+	return projectIDs
 }
 
-func filterProjects(in <-chan string, out chan<- string) {
+func filterProjects(projects []string, out chan<- string) {
 	ctx := context.Background()
 	suService, err := su.NewService(ctx)
 	if err != nil {
@@ -256,7 +252,7 @@ func filterProjects(in <-chan string, out chan<- string) {
 	}
 	suServicesService := su.NewServicesService(suService)
 	wg := sync.WaitGroup{}
-	for project := range in {
+	for _, project := range projects {
 		wg.Add(1)
 		go func(project string) {
 			fmt.Printf("ProjectID: %s\n", project)
