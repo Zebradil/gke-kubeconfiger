@@ -27,6 +27,26 @@ import (
 // The same user configuration is used for all clusters.
 const userName = "gke-kubeconfiger"
 
+type programConfig struct {
+	AuthPlugin     string
+	BatchSize      int
+	ConfigFile     string
+	DestDir        string
+	KubeconfigPath string
+	LogLevel       string
+	Projects       []string
+	Rename         bool
+	RenameTpl      string
+	Split          bool
+}
+
+func (c programConfig) String() string {
+	return fmt.Sprintf(`{AuthPlugin: '%s', BatchSize: %d, ConfigFile: '%s', DestDir: '%s', KubeconfigPath: '%s', Projects: %v, Rename: %t, RenameTpl: '%s', Split: %t}`,
+		c.AuthPlugin, c.BatchSize, c.ConfigFile, c.DestDir, c.KubeconfigPath, c.Projects, c.Rename, c.RenameTpl, c.Split)
+}
+
+var cfg programConfig
+
 type credentialsData struct {
 	AuthPlugin               string
 	CertificateAuthorityData string
@@ -128,10 +148,11 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	if viper.ConfigFileUsed() != "" {
-		log.WithField("config", viper.ConfigFileUsed()).Debug("Using config file")
-	} else {
+	cfg.ConfigFile = viper.ConfigFileUsed()
+	if cfg.ConfigFile == "" {
 		log.Debug("No config file used")
+	} else {
+		log.WithField("config", cfg.ConfigFile).Debug("Using config file")
 	}
 
 	var (
@@ -139,23 +160,31 @@ func run(cmd *cobra.Command, args []string) {
 		err        error
 	)
 
-	authPlugin := viper.GetString("auth-plugin")
-	batchSize := viper.GetInt("batch-size")
-	destDir := viper.GetString("dest-dir")
-	preselectedProjects := viper.GetStringSlice("projects")
-	rename := viper.GetBool("rename")
-	renameTpl := viper.GetString("rename-tpl")
-	split := viper.IsSet("dest-dir")
+	cfg.AuthPlugin = viper.GetString("auth-plugin")
+	cfg.BatchSize = viper.GetInt("batch-size")
+	cfg.DestDir = viper.GetString("dest-dir")
+	cfg.Projects = viper.GetStringSlice("projects")
+	cfg.Rename = viper.GetBool("rename")
+	cfg.RenameTpl = viper.GetString("rename-tpl")
+	cfg.Split = viper.IsSet("dest-dir")
 
-	var kubeconfigPath string
-	if !split {
+	if !cfg.Rename {
+		cfg.RenameTpl = `gke_{{ .ProjectID }}_{{ .Location }}_{{ .ClusterName }}`
+	}
+
+	contextNameTemplate, err := template.New("kubeconfig").Parse(cfg.RenameTpl)
+	if err != nil {
+		log.Fatalf("Failed to parse context name template: %v", err)
+	}
+
+	if !cfg.Split {
 		if val, ok := os.LookupEnv("KUBECONFIG"); ok {
-			kubeconfigPath = val
+			cfg.KubeconfigPath = val
 		} else if home, errHome := os.UserHomeDir(); errHome == nil {
-			kubeconfigPath = fmt.Sprintf("%s/.kube/config", home)
+			cfg.KubeconfigPath = fmt.Sprintf("%s/.kube/config", home)
 		} else {
 			log.Warnf("Failed to get user home directory: %v", errHome)
-			kubeconfigPath = "kubeconfig.yaml"
+			cfg.KubeconfigPath = "kubeconfig.yaml"
 		}
 
 		// FIXME: implement file locking
@@ -169,30 +198,22 @@ func run(cmd *cobra.Command, args []string) {
 		// written back.
 		// There is currently no good library for file locking in Go, see the
 		// following issue for some options: https://github.com/golang/go/issues/33974
-		kubeconfig, err = unmarshalKubeconfigToMap(kubeconfigPath)
+		kubeconfig, err = unmarshalKubeconfigToMap(cfg.KubeconfigPath)
 		if err != nil {
 			log.Fatalf("Failed to unmarshal kubeconfig: %v", err)
 		}
-	} else if err = createDirectory(destDir); err != nil {
+	} else if err = createDirectory(cfg.DestDir); err != nil {
 		log.Fatalf("Failed to create directory: %v", err)
 	}
 
-	contextNameTpl := `gke_{{ .ProjectID }}_{{ .Location }}_{{ .ClusterName }}`
-	if rename {
-		contextNameTpl = renameTpl
-	}
+	log.WithField("config", cfg).Debug("Configuration")
 
-	contextNameTemplate, err := template.New("kubeconfig").Parse(contextNameTpl)
-	if err != nil {
-		log.Fatalf("Failed to parse context name template: %v", err)
-	}
+	projects := make(chan string, cfg.BatchSize)
+	filteredProjects := make(chan string, cfg.BatchSize)
+	credentials := make(chan credentialsData, cfg.BatchSize)
 
-	projects := make(chan string, batchSize)
-	filteredProjects := make(chan string, batchSize)
-	credentials := make(chan credentialsData, batchSize)
-
-	if len(preselectedProjects) > 0 {
-		for _, project := range preselectedProjects {
+	if len(cfg.Projects) > 0 {
+		for _, project := range cfg.Projects {
 			projects <- project
 		}
 		close(projects)
@@ -201,13 +222,13 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	go filterProjects(projects, filteredProjects)
-	go getCredentials(filteredProjects, credentials, authPlugin)
+	go getCredentials(filteredProjects, credentials, cfg.AuthPlugin)
 
-	if split {
-		writeCredentialsToFile(credentials, destDir, contextNameTemplate)
+	if cfg.Split {
+		writeCredentialsToFile(credentials, cfg.DestDir, contextNameTemplate)
 	} else {
 		inflateKubeconfig(credentials, kubeconfig)
-		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), kubeconfigPath)
+		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), cfg.KubeconfigPath)
 	}
 }
 
