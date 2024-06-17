@@ -29,7 +29,7 @@ const userName = "gke-kubeconfiger"
 
 type programConfig struct {
 	AuthPlugin     string
-	BatchSize      int
+	Concurrency    int
 	ConfigFile     string
 	DestDir        string
 	KubeconfigPath string
@@ -41,8 +41,8 @@ type programConfig struct {
 }
 
 func (c programConfig) String() string {
-	return fmt.Sprintf(`{AuthPlugin: '%s', BatchSize: %d, ConfigFile: '%s', DestDir: '%s', KubeconfigPath: '%s', Projects: %v, Rename: %t, RenameTpl: '%s', Split: %t}`,
-		c.AuthPlugin, c.BatchSize, c.ConfigFile, c.DestDir, c.KubeconfigPath, c.Projects, c.Rename, c.RenameTpl, c.Split)
+	return fmt.Sprintf(`{AuthPlugin: '%s', Concurrency: %d, ConfigFile: '%s', DestDir: '%s', KubeconfigPath: '%s', Projects: %v, Rename: %t, RenameTpl: '%s', Split: %t}`,
+		c.AuthPlugin, c.Concurrency, c.ConfigFile, c.DestDir, c.KubeconfigPath, c.Projects, c.Rename, c.RenameTpl, c.Split)
 }
 
 var cfg programConfig
@@ -117,7 +117,7 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		Flags().
-		Int("batch-size", 10, "Batch size")
+		Int("concurrency", 10, "Number of concurrent API requests")
 
 	rootCmd.
 		Flags().
@@ -161,7 +161,7 @@ func run(cmd *cobra.Command, args []string) {
 	)
 
 	cfg.AuthPlugin = viper.GetString("auth-plugin")
-	cfg.BatchSize = viper.GetInt("batch-size")
+	cfg.Concurrency = viper.GetInt("concurrency")
 	cfg.DestDir = viper.GetString("dest-dir")
 	cfg.Projects = viper.GetStringSlice("projects")
 	cfg.Rename = viper.GetBool("rename")
@@ -208,16 +208,17 @@ func run(cmd *cobra.Command, args []string) {
 
 	log.WithField("config", cfg).Debug("Configuration")
 
-	projects := cfg.Projects
+	semaphore := make(chan struct{}, cfg.Concurrency)
 	filteredProjects := make(chan string)
 	credentials := make(chan credentialsData)
 
+	projects := cfg.Projects
 	if len(cfg.Projects) == 0 {
 		projects = getProjects()
 	}
 
-	go filterProjects(projects, filteredProjects)
-	go getCredentials(filteredProjects, credentials, cfg.AuthPlugin)
+	go filterProjects(semaphore, projects, filteredProjects)
+	go getCredentials(semaphore, filteredProjects, credentials, cfg.AuthPlugin)
 
 	if cfg.Split {
 		writeCredentialsToFile(credentials, cfg.DestDir, contextNameTemplate)
@@ -244,7 +245,7 @@ func getProjects() []string {
 	return projectIDs
 }
 
-func filterProjects(projects []string, out chan<- string) {
+func filterProjects(semaphore chan struct{}, projects []string, out chan<- string) {
 	ctx := context.Background()
 	suService, err := su.NewService(ctx)
 	if err != nil {
@@ -254,23 +255,26 @@ func filterProjects(projects []string, out chan<- string) {
 	wg := sync.WaitGroup{}
 	for _, project := range projects {
 		wg.Add(1)
+		semaphore <- struct{}{}
+		log.Tracef("Filtering project: %s", project)
 		go func(project string) {
-			fmt.Printf("ProjectID: %s\n", project)
+			defer wg.Done()
+			defer func() { <-semaphore }()
 			containerServiceRes, err := suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
 			if err != nil {
-				log.Fatalf("Failed to get container service: %v", err)
+				log.WithField("projectID", project).Errorf("Failed to get container service: %v", err)
+				return
 			}
 			if containerServiceRes.State == "ENABLED" {
 				out <- project
 			}
-			wg.Done()
 		}(project)
 	}
 	wg.Wait()
 	close(out)
 }
 
-func getCredentials(in <-chan string, out chan<- credentialsData, authPlugin string) {
+func getCredentials(semaphore chan struct{}, in <-chan string, out chan<- credentialsData, authPlugin string) {
 	ctx := context.Background()
 	containerService, err := cnt.NewService(ctx)
 	if err != nil {
@@ -279,15 +283,28 @@ func getCredentials(in <-chan string, out chan<- credentialsData, authPlugin str
 	wg := sync.WaitGroup{}
 	for project := range in {
 		wg.Add(1)
+		semaphore <- struct{}{}
 		go func(project string) {
+			defer wg.Done()
 			clusters, err := containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project)).Do()
+			<-semaphore
 			if err != nil {
-				log.Fatalf("Failed to list clusters: %v", err)
+				log.WithField("projectID", project).Errorf("Failed to list clusters: %v", err)
+				return
 			}
 			for _, cluster := range clusters.Clusters {
 				wg.Add(1)
+				semaphore <- struct{}{}
 				go func(cluster *cnt.Cluster) {
-					fmt.Printf("Cluster: %s (%s)\n", cluster.Name, cluster.Location)
+					defer wg.Done()
+					defer func() { <-semaphore }()
+					log.Infof("Cluster: %s (%s)\n", cluster.Name, cluster.Location)
+					log.WithFields(log.Fields{
+						"projectID":   project,
+						"clusterName": cluster.Name,
+						"location":    cluster.Location,
+						"endpoint":    cluster.Endpoint,
+					}).Debug("Cluster")
 					out <- credentialsData{
 						AuthPlugin:               authPlugin,
 						CertificateAuthorityData: cluster.MasterAuth.ClusterCaCertificate,
@@ -296,10 +313,8 @@ func getCredentials(in <-chan string, out chan<- credentialsData, authPlugin str
 						ProjectID:                project,
 						Server:                   fmt.Sprintf("https://%s", cluster.Endpoint),
 					}
-					wg.Done()
 				}(cluster)
 			}
-			wg.Done()
 		}(project)
 	}
 	wg.Wait()
