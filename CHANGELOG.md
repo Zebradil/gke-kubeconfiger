@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.2.6...0.3.0) (2024-06-17)
+
+
+### Features
+
+* rename `batch-size` flag to `concurrency` ([b1689f5](https://github.com/Zebradil/gke-kubeconfiger/commit/b1689f5a7fe37f6730650009a0a86a21280f877d))
+
 ## [0.2.6](https://github.com/Zebradil/gke-kubeconfiger/compare/0.2.5...0.2.6) (2024-06-15)
 
 
