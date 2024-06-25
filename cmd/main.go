@@ -223,7 +223,7 @@ func run(cmd *cobra.Command, args []string) {
 	if cfg.Split {
 		writeCredentialsToFile(credentials, cfg.DestDir, contextNameTemplate)
 	} else {
-		inflateKubeconfig(credentials, kubeconfig)
+		inflateKubeconfig(credentials, kubeconfig, contextNameTemplate)
 		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), cfg.KubeconfigPath)
 	}
 }
@@ -323,38 +323,38 @@ func getCredentials(semaphore chan struct{}, in <-chan string, out chan<- creden
 
 func writeCredentialsToFile(credentials <-chan credentialsData, destDir string, contextNameTemplate *template.Template) {
 	for data := range credentials {
-		contextNameBytes := &bytes.Buffer{}
-		err := contextNameTemplate.Execute(contextNameBytes, map[string]string{
-			"Server":      data.Server,
-			"ProjectID":   data.ProjectID,
-			"Location":    data.Location,
-			"ClusterName": data.ClusterName,
-		})
-		if err != nil {
-			log.Fatalf("Failed to execute kubeconfig template: %v", err)
-		}
 		filename := fmt.Sprintf("%s_%s_%s.yaml", data.ProjectID, data.Location, data.ClusterName)
 		filepath := filepath.Join(destDir, filename)
 		kubeconfig := getEmptyKubeconfig()
-		addCredentialsToKubeconfig(kubeconfig, data, contextNameBytes.String())
+		addCredentialsToKubeconfig(kubeconfig, data, contextNameTemplate)
 		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), filepath)
 	}
 }
 
-func inflateKubeconfig(credentials <-chan credentialsData, kubeconfig map[string]interface{}) {
+func inflateKubeconfig(credentials <-chan credentialsData, kubeconfig map[string]interface{}, contextNameTemplate *template.Template) {
 	for data := range credentials {
-		clusterName := fmt.Sprintf("gke_%s_%s_%s", data.ProjectID, data.Location, data.ClusterName)
-		addCredentialsToKubeconfig(kubeconfig, data, clusterName)
+		addCredentialsToKubeconfig(kubeconfig, data, contextNameTemplate)
 	}
 }
 
-func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credentialsData, clusterName string) {
-	replaceOrAppend(kubeconfig, "clusters", clusterName, "cluster", map[string]interface{}{
+func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credentialsData, contextNameTemplate *template.Template) {
+	contextNameBytes := &bytes.Buffer{}
+	err := contextNameTemplate.Execute(contextNameBytes, map[string]string{
+		"Server":      data.Server,
+		"ProjectID":   data.ProjectID,
+		"Location":    data.Location,
+		"ClusterName": data.ClusterName,
+	})
+	if err != nil {
+		log.Fatalf("Failed to execute kubeconfig template: %v", err)
+	}
+	contextName := contextNameBytes.String()
+	replaceOrAppend(kubeconfig, "clusters", contextName, "cluster", map[string]interface{}{
 		"certificate-authority-data": data.CertificateAuthorityData,
 		"server":                     data.Server,
 	})
-	replaceOrAppend(kubeconfig, "contexts", clusterName, "context", map[string]interface{}{
-		"cluster": clusterName,
+	replaceOrAppend(kubeconfig, "contexts", contextName, "context", map[string]interface{}{
+		"cluster": contextName,
 		"user":    userName,
 	})
 	replaceOrAppend(kubeconfig, "users", userName, "user", map[string]interface{}{
