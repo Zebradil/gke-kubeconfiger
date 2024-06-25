@@ -1,3 +1,10 @@
+## [0.3.2](https://github.com/Zebradil/gke-kubeconfiger/compare/0.3.1...0.3.2) (2024-06-25)
+
+
+### Bug Fixes
+
+* rename contexts for a central kubeconfig file too ([39cd1bc](https://github.com/Zebradil/gke-kubeconfiger/commit/39cd1bcdfd687f6a370f556ee87e951ad477b54e))
+
 ## [0.3.1](https://github.com/Zebradil/gke-kubeconfiger/compare/0.3.0...0.3.1) (2024-06-19)
 
 
