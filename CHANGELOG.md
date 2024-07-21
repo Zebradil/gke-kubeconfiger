@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.3.5...0.4.0) (2024-07-21)
+
+
+### Features
+
+* filter in only ACTIVE projects ([f58dac6](https://github.com/Zebradil/gke-kubeconfiger/commit/f58dac6a5419bd60e6a93983417e42381ef43aa9))
+
 ## [0.3.5](https://github.com/Zebradil/gke-kubeconfiger/compare/0.3.4...0.3.5) (2024-07-10)
 
 
