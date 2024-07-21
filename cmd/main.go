@@ -234,7 +234,7 @@ func getProjects() []string {
 	if err != nil {
 		log.Fatalf("Failed to create cloudresourcemanager service: %v", err)
 	}
-	projects, err := crmService.Projects.List().Do()
+	projects, err := crmService.Projects.List().Filter("lifecycleState:ACTIVE").Do()
 	if err != nil {
 		log.Fatalf("Failed to list projects: %v", err)
 	}
