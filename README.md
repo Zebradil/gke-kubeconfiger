@@ -5,11 +5,12 @@ for every cluster in every project but faster.
 
 > [!NOTE]  
 > This tool is in beta. Its behavior and interface may change in the future.
-
-> [!IMPORTANT]  
 > If you have any ideas or suggestions, or if you found a bug, please create an issue or a pull request.
 
 ## Usage
+
+> [!IMPORTANT]  
+> Make sure Application Default Credentials (ADC) are set up. You can do this by running `gcloud auth application-default login`.
 
 `gke-kubeconfiger` can work with kubeconfigs in two modes: single file and multiple files. It also has several flags to
 control its behavior.
