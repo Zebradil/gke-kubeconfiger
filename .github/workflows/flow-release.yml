@@ -45,6 +45,7 @@ jobs:
           GIT_COMMITTER_EMAIL: german.lashevich+github-zebradil-bot@gmail.com
         with:
           extra_plugins: |
+            @semantic-release/exec
             @semantic-release/git
       - name: List changed files
         run: git diff --name-only ${{ github.event.before }} ${{ github.sha }}
