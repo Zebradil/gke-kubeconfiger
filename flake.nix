@@ -12,13 +12,22 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
-    in {
-      packages.default = self.outputs.packages.${system}.gke-kubeconfiger;
-      packages.gke-kubeconfiger = pkgs.buildGoModule {
+      baseVersion = "0.4.4";
+      defaultPackage = pkgs.buildGoModule {
+        CGO_ENABLED = "0";
         pname = "gke-kubeconfiger";
-        version = "0.4.1";
         src = ./.;
-        vendorHash = "sha256-o8p/FWGxn85/wcACQP3O49yA6AOOn3l1TkxmADtZpq4=";
+        vendorHash = "sha256-BJ5sv5zV50xvlfqaeZcmXl/jEZ9zAdrregSTY+3LSYQ=";
+        version = "${baseVersion}-${self.shortRev or self.dirtyShortRev or self.lastModified or "unknown"}";
+      };
+    in {
+      packages.gke-kubeconfiger = defaultPackage;
+      defaultPackage = defaultPackage;
+
+      # Provide an application entry point
+      apps.default = flake-utils.lib.mkApp {
+        drv = defaultPackage;
+        name = "gker";
       };
     });
 }
