@@ -24,6 +24,9 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
         with:
           persist-credentials: false
+      - uses: cachix/install-nix-action@v27
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6
         with:
@@ -41,7 +44,10 @@ jobs:
           GIT_COMMITTER_EMAIL: german.lashevich+github-zebradil-bot@gmail.com
         with:
           extra_plugins: |
+            @semantic-release/exec
             @semantic-release/git
+      - name: Print committed changes
+        run: git show
       - name: Install GoReleaser
         if: steps.semantic.outputs.new_release_published == 'true'
         uses: goreleaser/goreleaser-action@286f3b13b1b49da4ac219696163fb8c1c93e1200 # v6
