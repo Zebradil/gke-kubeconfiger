@@ -32,5 +32,21 @@
         drv = defaultPackage;
         name = "gker";
       };
+
+      devShells.default = pkgs.mkShell {
+        packages = with pkgs; [
+          # TODO: add semantic-release and plugins
+          gnused
+          go
+          go-task
+          gofumpt
+          goimports-reviser
+          golangci-lint
+          goreleaser
+          gosec
+          nix-update
+          ytt
+        ];
+      };
     });
 }
