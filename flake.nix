@@ -12,7 +12,7 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
-      baseVersion = "0.4.4";
+      baseVersion = "0.4.5";
       defaultPackage = pkgs.buildGoModule {
         CGO_ENABLED = "0";
         pname = "gke-kubeconfiger";

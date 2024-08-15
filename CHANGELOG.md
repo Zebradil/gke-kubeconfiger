@@ -1,3 +1,10 @@
+## [0.4.5](https://github.com/Zebradil/gke-kubeconfiger/compare/0.4.4...0.4.5) (2024-08-15)
+
+
+### Bug Fixes
+
+* **ci:** introduce flakes ([#55](https://github.com/Zebradil/gke-kubeconfiger/issues/55)) ([69200a3](https://github.com/Zebradil/gke-kubeconfiger/commit/69200a3ae242275e9354d9d6eeab6509682db56a))
+
 ## [0.4.4](https://github.com/Zebradil/gke-kubeconfiger/compare/0.4.3...0.4.4) (2024-08-14)
 
 
