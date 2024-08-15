@@ -4,9 +4,9 @@ branches:
   - flake
 plugins:
   - "@semantic-release/commit-analyzer"
-  # - "@semantic-release/release-notes-generator"
-  # - "@semantic-release/changelog"
   - - "@semantic-release/exec"
-    - prepareCmd: .github/scripts/prepare ${nextRelease.version}
-  # - "@semantic-release/git"
+    - prepareCmd: .github/scripts/update-flake ${nextRelease.version}
+  - "@semantic-release/release-notes-generator"
+  - "@semantic-release/changelog"
+  - "@semantic-release/git"
 tagFormat: "${version}"

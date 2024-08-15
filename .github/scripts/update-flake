@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # If Github Action is running with debug enabled, print all commands
-# Otherwise, silence all commands
+# Otherwise, silence standard output
 if [[ "${RUNNER_DEBUG:-}" == "1" ]]; then
     set -x
 else

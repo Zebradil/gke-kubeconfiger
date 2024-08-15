@@ -6,13 +6,29 @@ on:
     branches:
       - main
     paths:
-      - "main.go"
-      - "go.mod"
-      - "go.sum"
-      - ".goreleaser.yml"
+      - .goreleaser.yml
+      - cmd/**
+      - flake.nix
+      - go.mod
+      - go.sum
+      - main.go
 
 jobs:
   lint:
     uses: ./.github/workflows/job-lint.yml
   test:
     uses: ./.github/workflows/job-test.yml
+  nix-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v27
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Try to update nix flake
+        run: ./.github/scripts/update-flake pr-${{ github.event.pull_request.number }}
+      - name: Print changes
+        run: git diff
