@@ -19,6 +19,9 @@
         src = ./.;
         vendorHash = "sha256-BJ5sv5zV50xvlfqaeZcmXl/jEZ9zAdrregSTY+3LSYQ=";
         version = "${baseVersion}-${self.shortRev or self.dirtyShortRev or self.lastModified or "unknown"}";
+        meta = {
+          description = "TBD";
+        };
       };
     in {
       packages.gke-kubeconfiger = defaultPackage;
