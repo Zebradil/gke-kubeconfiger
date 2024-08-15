@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - flake
 
 jobs:
   lint:
@@ -24,6 +25,9 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
         with:
           persist-credentials: false
+      - uses: cachix/install-nix-action@v27
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@01dd5d3ca463c7f10f7f4f7b4f177225ac661ee4 # v6
         with:
@@ -42,29 +46,31 @@ jobs:
         with:
           extra_plugins: |
             @semantic-release/git
-      - name: Install GoReleaser
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: goreleaser/goreleaser-action@286f3b13b1b49da4ac219696163fb8c1c93e1200 # v6
-        with:
-          install-only: true
-      - name: Setup QEMU
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3
-      - name: Setup Docker Buildx
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3
-      - name: Login to GHCR
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish release
-        if: steps.semantic.outputs.new_release_published == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
-        run: |
-          goreleaser release --clean \
-            --release-notes <(echo "${{ steps.semantic.outputs.new_release_notes }}")
+      - name: List changed files
+        run: git diff --name-only ${{ github.event.before }} ${{ github.sha }}
+      # - name: Install GoReleaser
+      #   if: steps.semantic.outputs.new_release_published == 'true'
+      #   uses: goreleaser/goreleaser-action@286f3b13b1b49da4ac219696163fb8c1c93e1200 # v6
+      #   with:
+      #     install-only: true
+      # - name: Setup QEMU
+      #   if: steps.semantic.outputs.new_release_published == 'true'
+      #   uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3
+      # - name: Setup Docker Buildx
+      #   if: steps.semantic.outputs.new_release_published == 'true'
+      #   uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3
+      # - name: Login to GHCR
+      #   if: steps.semantic.outputs.new_release_published == 'true'
+      #   uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Publish release
+      #   if: steps.semantic.outputs.new_release_published == 'true'
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+      #   run: |
+      #     goreleaser release --clean \
+      #       --release-notes <(echo "${{ steps.semantic.outputs.new_release_notes }}")
