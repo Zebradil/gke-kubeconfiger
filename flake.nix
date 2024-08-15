@@ -18,7 +18,13 @@
         pname = "gke-kubeconfiger";
         src = ./.;
         vendorHash = "sha256-9kZ8oNhDWJNUOgQ24eAJnT9kT6Z60WSeOomWO0T9Em0=";
-        version = "${baseVersion}-${self.shortRev or self.dirtyShortRev or toString self.lastModified or "unknown"}";
+        version = "${baseVersion}-${
+          if (self ? shortRev)
+          then self.shortRev
+          else if (self ? dirtyShortRev)
+          then self.dirtyShortRev
+          else "unknown"
+        }";
         meta = {
           description = "TBD";
         };
