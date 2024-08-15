@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+set -x
+
 # Replace version in flake.nix
 # If the pattern is not found, exit with code 128
 # If the version is not set, exit with code 1
