@@ -1,3 +1,10 @@
+## [0.4.6](https://github.com/Zebradil/gke-kubeconfiger/compare/0.4.5...0.4.6) (2024-08-15)
+
+
+### Bug Fixes
+
+* **deps:** update go versions ([4d97c4e](https://github.com/Zebradil/gke-kubeconfiger/commit/4d97c4ed9124c22ea4013593dde5b506796bd031))
+
 ## [0.4.5](https://github.com/Zebradil/gke-kubeconfiger/compare/0.4.4...0.4.5) (2024-08-15)
 
 
