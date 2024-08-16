@@ -13,20 +13,34 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
       baseVersion = "0.4.6";
+      commit =
+        if (self ? shortRev)
+        then self.shortRev
+        else if (self ? dirtyShortRev)
+        then self.dirtyShortRev
+        else "unknown";
+      version = "${baseVersion}-${commit}";
       defaultPackage = pkgs.buildGoModule {
         CGO_ENABLED = "0";
         pname = "gke-kubeconfiger";
         src = ./.;
         vendorHash = "sha256-9kZ8oNhDWJNUOgQ24eAJnT9kT6Z60WSeOomWO0T9Em0=";
-        version = "${baseVersion}-${
-          if (self ? shortRev)
-          then self.shortRev
-          else if (self ? dirtyShortRev)
-          then self.dirtyShortRev
-          else "unknown"
-        }";
+        version = version;
+
+        ldflags = [
+          "-s"
+          "-w"
+          "-X=main.version=${baseVersion}"
+          "-X=main.commit=${commit}"
+          "-X=main.date=1970-01-01"
+        ];
+
         meta = {
-          description = "TBD";
+          changelog = "https://github.com/Zebradil/gke-kubeconfiger/blob/${baseVersion}/CHANGELOG.md";
+          description = "Setup kubeconfigs for all accessible GKE clusters";
+          homepage = "https://github.com/Zebradil/gke-kubeconfiger";
+          license = nixpkgs.lib.licenses.mit;
+          mainProgram = "gker";
         };
       };
     in {
