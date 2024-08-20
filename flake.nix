@@ -12,7 +12,7 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
-      baseVersion = "0.4.6";
+      baseVersion = "0.4.7";
       commit =
         if (self ? shortRev)
         then self.shortRev
@@ -24,7 +24,7 @@
         CGO_ENABLED = "0";
         pname = "gke-kubeconfiger";
         src = ./.;
-        vendorHash = "sha256-9kZ8oNhDWJNUOgQ24eAJnT9kT6Z60WSeOomWO0T9Em0=";
+        vendorHash = "sha256-8biXJ/eKPVqxBcGIBehISeBD3ffGuYd7DTK88zFNPrw=";
         version = version;
 
         ldflags = [
