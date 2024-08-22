@@ -28,6 +28,7 @@ import (
 const userName = "gke-kubeconfiger"
 
 type programConfig struct {
+	AddMetadata    bool
 	AuthPlugin     string
 	Concurrency    int
 	ConfigFile     string
@@ -41,8 +42,7 @@ type programConfig struct {
 }
 
 func (c programConfig) String() string {
-	return fmt.Sprintf(`{AuthPlugin: '%s', Concurrency: %d, ConfigFile: '%s', DestDir: '%s', KubeconfigPath: '%s', Projects: %v, Rename: %t, RenameTpl: '%s', Split: %t}`,
-		c.AuthPlugin, c.Concurrency, c.ConfigFile, c.DestDir, c.KubeconfigPath, c.Projects, c.Rename, c.RenameTpl, c.Split)
+	return fmt.Sprintf(`{AddMetadata: %t, AuthPlugin: '%s', Concurrency: %d, ConfigFile: '%s', DestDir: '%s', KubeconfigPath: '%s', Projects: %v, Rename: %t, RenameTpl: '%s', Split: %t}`, c.AddMetadata, c.AuthPlugin, c.Concurrency, c.ConfigFile, c.DestDir, c.KubeconfigPath, c.Projects, c.Rename, c.RenameTpl, c.Split)
 }
 
 var cfg programConfig
@@ -113,6 +113,10 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		Flags().
+		Bool("add-metadata", false, "[EXPERIMENTAL] Add GKE metadata to kubeconfig files. Works only with --dest-dir")
+
+	rootCmd.
+		Flags().
 		String("auth-plugin", "gke-gcloud-auth-plugin", "Name of the auth plugin to use in kubeconfig")
 
 	rootCmd.
@@ -160,6 +164,7 @@ func run(cmd *cobra.Command, args []string) {
 		err        error
 	)
 
+	cfg.AddMetadata = viper.GetBool("add-metadata")
 	cfg.AuthPlugin = viper.GetString("auth-plugin")
 	cfg.Concurrency = viper.GetInt("concurrency")
 	cfg.DestDir = viper.GetString("dest-dir")
@@ -202,6 +207,10 @@ func run(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalf("Failed to unmarshal kubeconfig: %v", err)
 		}
+
+		if cfg.AddMetadata {
+			log.Warn("Metadata is not supported when --dest-dir is not set")
+		}
 	} else if err = createDirectory(cfg.DestDir); err != nil {
 		log.Fatalf("Failed to create directory: %v", err)
 	}
@@ -221,7 +230,7 @@ func run(cmd *cobra.Command, args []string) {
 	go getCredentials(semaphore, filteredProjects, credentials, cfg.AuthPlugin)
 
 	if cfg.Split {
-		writeCredentialsToFile(credentials, cfg.DestDir, contextNameTemplate)
+		writeCredentialsToFile(credentials, cfg.DestDir, contextNameTemplate, cfg.AddMetadata)
 	} else {
 		inflateKubeconfig(credentials, kubeconfig, contextNameTemplate)
 		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), cfg.KubeconfigPath)
@@ -321,12 +330,15 @@ func getCredentials(semaphore chan struct{}, in <-chan string, out chan<- creden
 	close(out)
 }
 
-func writeCredentialsToFile(credentials <-chan credentialsData, destDir string, contextNameTemplate *template.Template) {
+func writeCredentialsToFile(credentials <-chan credentialsData, destDir string, contextNameTemplate *template.Template, withMetadata bool) {
 	for data := range credentials {
 		filename := fmt.Sprintf("%s_%s_%s.yaml", data.ProjectID, data.Location, data.ClusterName)
 		filepath := filepath.Join(destDir, filename)
 		kubeconfig := getEmptyKubeconfig()
 		addCredentialsToKubeconfig(kubeconfig, data, contextNameTemplate)
+		if withMetadata {
+			addMetadataToKubeconfig(kubeconfig, data)
+		}
 		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), filepath)
 	}
 }
@@ -365,6 +377,14 @@ func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credenti
 			"provideClusterInfo": true,
 		},
 	})
+}
+
+func addMetadataToKubeconfig(kubeconfig map[string]interface{}, data credentialsData) {
+	kubeconfig["gkeMetadata"] = map[string]interface{}{
+		"projectID":   data.ProjectID,
+		"location":    data.Location,
+		"clusterName": data.ClusterName,
+	}
 }
 
 func replaceOrAppend(kubeconfig map[string]interface{}, listName, itemName, key string, value interface{}) {
