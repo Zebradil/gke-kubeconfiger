@@ -2,16 +2,19 @@
   description = "GKE Kubeconfiger";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     flake-utils.url = "github:numtide/flake-utils";
   };
   outputs = {
     self,
     nixpkgs,
+    nixpkgs-master,
     flake-utils,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
+      pkgsMaster = import nixpkgs-master {inherit system;};
       baseVersion = "0.4.7";
       commit =
         if (self ? shortRev)
@@ -54,19 +57,23 @@
       };
 
       devShells.default = pkgs.mkShell {
-        packages = with pkgs; [
-          # TODO: add semantic-release and plugins
-          gnused
-          go
-          go-task
-          gofumpt
-          goimports-reviser
-          golangci-lint
-          goreleaser
-          gosec
-          nix-update
-          ytt
-        ];
+        packages =
+          (with pkgs; [
+            # TODO: add semantic-release and plugins
+            gnused
+            go
+            go-task
+            gofumpt
+            goimports-reviser
+            golangci-lint
+            gosec
+            nix-update
+            ytt
+          ])
+          ++ [
+            defaultPackage
+            pkgsMaster.goreleaser
+          ];
       };
     });
 }
