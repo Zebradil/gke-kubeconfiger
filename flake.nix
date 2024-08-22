@@ -15,7 +15,7 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
       pkgsMaster = import nixpkgs-master {inherit system;};
-      baseVersion = "0.4.7";
+      baseVersion = "0.5.0";
       commit =
         if (self ? shortRev)
         then self.shortRev

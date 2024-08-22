@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.4.7...0.5.0) (2024-08-22)
+
+
+### Features
+
+* new option to add GKE metadata to kubeconfig files ([4887dca](https://github.com/Zebradil/gke-kubeconfiger/commit/4887dca088ac276fe9adb38b4fb57b9894ef3c1d))
+
 ## [0.4.7](https://github.com/Zebradil/gke-kubeconfiger/compare/0.4.6...0.4.7) (2024-08-20)
 
 
