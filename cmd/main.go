@@ -17,6 +17,7 @@ import (
 
 	crm "google.golang.org/api/cloudresourcemanager/v1"
 	cnt "google.golang.org/api/container/v1"
+	"google.golang.org/api/option"
 	su "google.golang.org/api/serviceusage/v1"
 
 	"github.com/spf13/cobra"
@@ -252,22 +253,23 @@ func getProjects() []string {
 
 func filterProjects(semaphore chan struct{}, projects []string, out chan<- string) {
 	ctx := context.Background()
-	suService, err := su.NewService(ctx)
-	if err != nil {
-		log.Fatalf("Failed to create serviceusage service: %v", err)
-	}
-	suServicesService := su.NewServicesService(suService)
 	wg := sync.WaitGroup{}
 	for _, project := range projects {
-		wg.Add(1)
+		suService, err := su.NewService(ctx, option.WithQuotaProject(project))
+		if err != nil {
+			log.WithField("projectID", project).Debugf("Failed to create serviceusage service: %v", err)
+			continue
+		}
+		suServicesService := su.NewServicesService(suService)
 		semaphore <- struct{}{}
 		log.Tracef("Filtering project: %s", project)
+		wg.Add(1)
 		go func(project string) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
 			containerServiceRes, err := suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
 			if err != nil {
-				log.WithField("projectID", project).Errorf("Failed to get container service: %v", err)
+				log.WithField("projectID", project).Debugf("Failed to get container service: %v", err)
 				return
 			}
 			if containerServiceRes.State == "ENABLED" {
