@@ -1,3 +1,11 @@
+# [0.6.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.5.8...0.6.0) (2024-10-21)
+
+
+### Features
+
+* move GKE metadata to clusters ([1f617f7](https://github.com/Zebradil/gke-kubeconfiger/commit/1f617f724ad2034d0dc3370a62f92e1630053dde))
+* use filtered project as quota project to reduce rate limiting ([d55f35f](https://github.com/Zebradil/gke-kubeconfiger/commit/d55f35f301e1c616a281f00c848013601dcd16ec))
+
 ## [0.5.8](https://github.com/Zebradil/gke-kubeconfiger/compare/0.5.7...0.5.8) (2024-10-16)
 
 
