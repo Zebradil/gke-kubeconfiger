@@ -113,7 +113,7 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		Flags().
-		Bool("add-metadata", false, "[EXPERIMENTAL] Add GKE metadata to kubeconfig files. Works only with --dest-dir")
+		Bool("add-metadata", false, "[EXPERIMENTAL] Add GKE metadata to clusters in kubeconfig")
 
 	rootCmd.
 		Flags().
@@ -207,10 +207,6 @@ func run(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalf("Failed to unmarshal kubeconfig: %v", err)
 		}
-
-		if cfg.AddMetadata {
-			log.Warn("Metadata is not supported when --dest-dir is not set")
-		}
 	} else if err = createDirectory(cfg.DestDir); err != nil {
 		log.Fatalf("Failed to create directory: %v", err)
 	}
@@ -232,7 +228,7 @@ func run(cmd *cobra.Command, args []string) {
 	if cfg.Split {
 		writeCredentialsToFile(credentials, cfg.DestDir, contextNameTemplate, cfg.AddMetadata)
 	} else {
-		inflateKubeconfig(credentials, kubeconfig, contextNameTemplate)
+		inflateKubeconfig(credentials, kubeconfig, contextNameTemplate, cfg.AddMetadata)
 		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), cfg.KubeconfigPath)
 	}
 }
@@ -335,21 +331,18 @@ func writeCredentialsToFile(credentials <-chan credentialsData, destDir string, 
 		filename := fmt.Sprintf("%s_%s_%s.yaml", data.ProjectID, data.Location, data.ClusterName)
 		filepath := filepath.Join(destDir, filename)
 		kubeconfig := getEmptyKubeconfig()
-		addCredentialsToKubeconfig(kubeconfig, data, contextNameTemplate)
-		if withMetadata {
-			addMetadataToKubeconfig(kubeconfig, data)
-		}
+		addCredentialsToKubeconfig(kubeconfig, data, contextNameTemplate, withMetadata)
 		writeKubeconfigToFile(encodeKubeconfig(kubeconfig), filepath)
 	}
 }
 
-func inflateKubeconfig(credentials <-chan credentialsData, kubeconfig map[string]interface{}, contextNameTemplate *template.Template) {
+func inflateKubeconfig(credentials <-chan credentialsData, kubeconfig map[string]interface{}, contextNameTemplate *template.Template, withMetadata bool) {
 	for data := range credentials {
-		addCredentialsToKubeconfig(kubeconfig, data, contextNameTemplate)
+		addCredentialsToKubeconfig(kubeconfig, data, contextNameTemplate, withMetadata)
 	}
 }
 
-func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credentialsData, contextNameTemplate *template.Template) {
+func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credentialsData, contextNameTemplate *template.Template, withMetadata bool) {
 	contextNameBytes := &bytes.Buffer{}
 	err := contextNameTemplate.Execute(contextNameBytes, map[string]string{
 		"Server":      data.Server,
@@ -361,10 +354,14 @@ func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credenti
 		log.Fatalf("Failed to execute kubeconfig template: %v", err)
 	}
 	contextName := contextNameBytes.String()
-	replaceOrAppend(kubeconfig, "clusters", contextName, "cluster", map[string]interface{}{
+	cluster := map[string]interface{}{
 		"certificate-authority-data": data.CertificateAuthorityData,
 		"server":                     data.Server,
-	})
+	}
+	if withMetadata {
+		addMetadataToCluster(cluster, data)
+	}
+	replaceOrAppend(kubeconfig, "clusters", contextName, "cluster", cluster)
 	replaceOrAppend(kubeconfig, "contexts", contextName, "context", map[string]interface{}{
 		"cluster": contextName,
 		"user":    userName,
@@ -379,8 +376,8 @@ func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credenti
 	})
 }
 
-func addMetadataToKubeconfig(kubeconfig map[string]interface{}, data credentialsData) {
-	kubeconfig["gkeMetadata"] = map[string]interface{}{
+func addMetadataToCluster(cluster map[string]interface{}, data credentialsData) {
+	cluster["gkeMetadata"] = map[string]interface{}{
 		"projectID":   data.ProjectID,
 		"location":    data.Location,
 		"clusterName": data.ClusterName,
