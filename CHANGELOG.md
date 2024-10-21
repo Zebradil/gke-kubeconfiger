@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.6.0...0.7.0) (2024-10-21)
+
+
+### Features
+
+* revert different quota projects ([04766e2](https://github.com/Zebradil/gke-kubeconfiger/commit/04766e20fc98865676c83b03c2ba4ab9932a42bb))
+
 # [0.6.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.5.8...0.6.0) (2024-10-21)
 
 
