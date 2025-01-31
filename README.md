@@ -140,15 +140,11 @@ packages.
 
 ### Nix
 
-The package is available in the Nixpkgs repository under the name
-[`gke-kubeconfiger`](https://search.nixos.org/packages?channel=unstable&show=gke-kubeconfiger&from=0&size=50&sort=relevance&type=packages&query=gke-kubeconfiger).
+The package is not yet available in the Nixpkgs repository. Use nix flake instead.
 
 ```shell
-nix-shell -p gke-kubeconfiger
+nix shell 'github:Zebradil/gke-kubeconfiger/main#gke-kubeconfiger'
 ```
-
-> [!NOTE]  
-> The version in Nixpkgs is falling behind the latest release. If you need the latest version, use the flake.
 
 ### Manual
 
