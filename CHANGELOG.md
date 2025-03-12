@@ -1,3 +1,17 @@
+## [0.7.19](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.18...0.7.19) (2025-03-12)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/spf13/cobra to v1.9.0 ([#116](https://github.com/Zebradil/gke-kubeconfiger/issues/116)) ([10a473f](https://github.com/Zebradil/gke-kubeconfiger/commit/10a473febf6ddfbd7aa37e93ded74e8b13327f48))
+* **deps:** update module github.com/spf13/cobra to v1.9.1 ([#117](https://github.com/Zebradil/gke-kubeconfiger/issues/117)) ([89deecf](https://github.com/Zebradil/gke-kubeconfiger/commit/89deecf428f9f0fdde3ca1c50384ce485c9239b8))
+* **deps:** update module google.golang.org/api to v0.220.0 ([#105](https://github.com/Zebradil/gke-kubeconfiger/issues/105)) ([17bc2c0](https://github.com/Zebradil/gke-kubeconfiger/commit/17bc2c0785e6fdeff7d6b68991f0b687b2087ff3))
+* **deps:** update module google.golang.org/api to v0.221.0 ([#112](https://github.com/Zebradil/gke-kubeconfiger/issues/112)) ([33e2621](https://github.com/Zebradil/gke-kubeconfiger/commit/33e26213a0d414d17aede9d6110d4776bf3aa045))
+* **deps:** update module google.golang.org/api to v0.222.0 ([#118](https://github.com/Zebradil/gke-kubeconfiger/issues/118)) ([081a189](https://github.com/Zebradil/gke-kubeconfiger/commit/081a18910350605c4d45ef2c70684366c9c9d9d4))
+* **deps:** update module google.golang.org/api to v0.223.0 ([#119](https://github.com/Zebradil/gke-kubeconfiger/issues/119)) ([55fb76e](https://github.com/Zebradil/gke-kubeconfiger/commit/55fb76e46466c349381aef96501958dc7bda427a))
+* **deps:** update module google.golang.org/api to v0.224.0 ([#124](https://github.com/Zebradil/gke-kubeconfiger/issues/124)) ([c4ab923](https://github.com/Zebradil/gke-kubeconfiger/commit/c4ab9237b9f8b33c3e197d97cf684ca8fd6ce404))
+* **deps:** update module google.golang.org/api to v0.225.0 ([#127](https://github.com/Zebradil/gke-kubeconfiger/issues/127)) ([0e92ceb](https://github.com/Zebradil/gke-kubeconfiger/commit/0e92cebbfcf2513b30f3eea38e20b3319bf6f4dd))
+
 ## [0.7.18](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.17...0.7.18) (2025-01-30)
 
 
