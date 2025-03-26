@@ -1,3 +1,10 @@
+## [0.7.24](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.23...0.7.24) (2025-03-26)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/spf13/viper to v1.20.1 ([#141](https://github.com/Zebradil/gke-kubeconfiger/issues/141)) ([891b20e](https://github.com/Zebradil/gke-kubeconfiger/commit/891b20e422564363a101e3b6d42b5e317bd41907))
+
 ## [0.7.23](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.22...0.7.23) (2025-03-25)
 
 
