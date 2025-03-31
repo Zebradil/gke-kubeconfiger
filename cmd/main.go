@@ -79,7 +79,7 @@ func initConfig() {
 
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".gke-kubeconfiger")
+		viper.SetConfigName(".gker")
 	}
 
 	if err := viper.ReadInConfig(); err == nil {
@@ -89,9 +89,9 @@ func initConfig() {
 
 func NewRootCmd(version, commit, date string) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:     "gke-kubeconfiger",
+		Use:     "gker",
 		Short:   "Discovers GKE clusters and updates the KUBECONFIG file to include them",
-		Long:    "gke-kubeconfiger discovers GKE clusters and updates the KUBECONFIG file to include them.",
+		Long:    "gker discovers GKE clusters and updates the KUBECONFIG file to include them.",
 		Args:    cobra.NoArgs,
 		Version: fmt.Sprintf("%s, commit %s, built at %s", version, commit, date),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -109,7 +109,7 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		PersistentFlags().
-		StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gke-kubeconfiger.yaml)")
+		StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gker.yaml)")
 
 	rootCmd.
 		Flags().

@@ -1,4 +1,4 @@
-# gke-kubeconfiger
+# GKE Kubeconfiger (`gker`)
 
 Setup kubeconfigs for all accessible GKE clusters. It is the same as running `gcloud container clusters get-credentials`
 for every cluster in every project but faster.
@@ -12,27 +12,27 @@ for every cluster in every project but faster.
 > [!IMPORTANT]  
 > Make sure Application Default Credentials (ADC) are set up. You can do this by running `gcloud auth application-default login`.
 
-`gke-kubeconfiger` can work with kubeconfigs in two modes: single file and multiple files. It also has several flags to
+`gker` can work with kubeconfigs in two modes: single file and multiple files. It also has several flags to
 control its behavior.
 
 ```
-gke-kubeconfiger discovers GKE clusters and updates the KUBECONFIG file to include them.
+gker discovers GKE clusters and updates the KUBECONFIG file to include them.
 
 Usage:
-  gke-kubeconfiger [flags]
+  gker [flags]
 
 Flags:
       --auth-plugin string   Name of the auth plugin to use in kubeconfig (default "gke-gcloud-auth-plugin")
       --batch-size int       Batch size (default 10)
-      --config string        config file (default is $HOME/.gke-kubeconfiger.yaml)
+      --config string        config file (default is $HOME/.gker.yaml)
       --dest-dir string      Destination directory to write kubeconfig files.
                              If set, every kubeconfig will be written to a separate file (default ".")
-  -h, --help                 help for gke-kubeconfiger
+  -h, --help                 help for gker
       --log-level string     Sets logging level: trace, debug, info, warning, error, fatal, panic (default "info")
       --projects strings     Projects to filter by
       --rename               Rename kubeconfig contexts
       --rename-tpl string    Rename template (default "{{ .ProjectID }}/{{ .Location }}/{{ .ClusterName }}")
-  -v, --version              version for gke-kubeconfiger
+  -v, --version              version for gker
 ```
 
 > [!NOTE]  
@@ -41,14 +41,14 @@ Flags:
 
 ### Single kubeconfig file (default)
 
-Without any flags, `gke-kubeconfiger` will discover all GKE clusters in all GCP projects you have access to and update
+Without any flags, `gker` will discover all GKE clusters in all GCP projects you have access to and update
 or add the corresponding kubeconfig entries.
 
 The kubeconfig file is read from the `KUBECONFIG` environment variable or the default location (`$HOME/.kube/config`).
 
 ```shell
 # Update the current kubeconfig file in-place
-gke-kubeconfiger
+gker
 ```
 
 ### Multiple kubeconfig files
@@ -58,7 +58,7 @@ To write every kubeconfig to a separate file, use the `--dest-dir` flag. The kub
 
 ```shell
 # Write kubeconfigs to the ~/.kube/gke.clusters/ directory for every GKE cluster
-gke-kubeconfiger --dest-dir ~/.kube/gke.clusters/
+gker --dest-dir ~/.kube/gke.clusters/
 ```
 
 ### Filtering
@@ -68,12 +68,12 @@ Only clusters from the specified projects will be included in the kubeconfig.
 
 ```shell
 # Include only the specified projects
-gke-kubeconfiger --projects project-1,project-2
+gker --projects project-1,project-2
 ```
 
 ### Renaming contexts
 
-By default, `gke-kubeconfiger` names clusters, contexts, and users in the kubeconfig file in the same way as `gcloud`
+By default, `gker` names clusters, contexts, and users in the kubeconfig file in the same way as `gcloud`
 does, using the following template:
 
 ```
@@ -93,27 +93,27 @@ Examples of renaming contexts:
 
 ```shell
 # Default context names (gke_{{ .ProjectID }}_{{ .Location }}_{{ .ClusterName }})
-gke-kubeconfiger
+gker
 # Rename using the default template ({{ .ProjectID }}/{{ .Location }}/{{ .ClusterName }})
-gke-kubeconfiger --rename
+gker --rename
 # Rename using a custom template ({{ .ClusterName }})
-gke-kubeconfiger --rename --rename-tpl "{{ .ClusterName }}"
+gker --rename --rename-tpl "{{ .ClusterName }}"
 ```
 
 ### Batch size
 
-By default, `gke-kubeconfiger` processes clusters in batches of 10. You can change this value using the `--batch-size`
+By default, `gker` processes clusters in batches of 10. You can change this value using the `--batch-size`
 
 ### Auth plugin
 
-By default, `gke-kubeconfiger` uses the `gke-gcloud-auth-plugin` auth plugin, as `gcloud` does. You can use another auth
+By default, `gker` uses the `gke-gcloud-auth-plugin` auth plugin, as `gcloud` does. You can use another auth
 plugin by specifying the `--auth-plugin` flag.
 
 ```shell
 # Use the gke-gcloud-auth-plugin auth plugin
-gke-kubeconfiger
+gker
 # Use the custom-gke-auth-plugin auth plugin
-gke-kubeconfiger --auth-plugin custom-gke-auth-plugin
+gker --auth-plugin custom-gke-auth-plugin
 ```
 
 ## Installation
@@ -158,10 +158,10 @@ git clone https://github.com/Zebradil/gke-kubeconfiger.git
 curl -sL https://github.com/Zebradil/gke-kubeconfiger/archive/refs/heads/master.tar.gz | tar xz
 
 cd gke-kubeconfiger-master
-go build -o gke-kubeconfiger main.go
+go build -o gker main.go
 ```
 
-Now you can run `gke-kubeconfiger` manually (see [Usage](#usage) section).
+Now you can run `gker` manually (see [Usage](#usage) section).
 
 ## Development
 
@@ -171,7 +171,7 @@ There are several ways to build the application:
 
 ```shell
 # Build with go for the current platform
-go build -o gke-kubeconfiger main.go
+go build -o gker main.go
 
 # Build with GoReleaser for all configured platforms
 task go:build
