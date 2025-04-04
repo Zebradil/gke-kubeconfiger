@@ -402,7 +402,7 @@ func replaceOrAppend(kubeconfig map[string]interface{}, listName, itemName, key 
 }
 
 func writeKubeconfigToFile(kubeconfig io.Reader, filepath string) {
-	out, err := os.OpenFile(filepath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	out, err := os.OpenFile(filepath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600) // #nosec G304
 	if err != nil {
 		log.Fatalf("Failed to create file: %v", err)
 	}
@@ -448,7 +448,7 @@ func unmarshalKubeconfigToMap(filePath string) (map[string]interface{}, error) {
 		return getEmptyKubeconfig(), nil
 	}
 
-	file, err := os.ReadFile(filePath)
+	file, err := os.ReadFile(filePath) // #nosec G304
 	if err != nil {
 		return nil, err
 	}
