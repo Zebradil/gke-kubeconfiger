@@ -406,7 +406,11 @@ func writeKubeconfigToFile(kubeconfig io.Reader, filepath string) {
 	if err != nil {
 		log.Fatalf("Failed to create file: %v", err)
 	}
-	defer out.Close()
+	defer func() {
+		if err := out.Close(); err != nil {
+			log.Fatalf("Failed to close file: %v", err)
+		}
+	}()
 	_, err = io.Copy(out, kubeconfig)
 	if err != nil {
 		log.Fatalf("Failed to write file: %v", err)
