@@ -18,7 +18,7 @@
       let
         pkgs = import nixpkgs { inherit system; };
         pkgsMaster = import nixpkgs-master { inherit system; };
-        baseVersion = "0.7.25";
+        baseVersion = "0.7.26";
         commit =
           if (self ? shortRev) then
             self.shortRev
@@ -31,7 +31,7 @@
           CGO_ENABLED = "0";
           pname = "gke-kubeconfiger";
           src = ./.;
-          vendorHash = "sha256-wrXeoyVo0iszqRU+/+XhMkNeIocLpZv1jD1Q5E/cIQY=";
+          vendorHash = "env v1.6.0";
           version = version;
 
           ldflags = [
