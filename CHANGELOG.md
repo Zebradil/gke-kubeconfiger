@@ -1,3 +1,10 @@
+## [0.7.28](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.27...0.7.28) (2025-05-05)
+
+
+### Bug Fixes
+
+* **release:** commit nix/package.nix instead of flake.nix ([a0a07e8](https://github.com/Zebradil/gke-kubeconfiger/commit/a0a07e8aa488fb988b4521bdb242a370f6c8942f))
+
 ## [0.7.27](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.26...0.7.27) (2025-05-05)
 
 
