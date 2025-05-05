@@ -10,5 +10,5 @@ plugins:
   - - '@semantic-release/git'
     - assets:
         - CHANGELOG.md
-        - flake.nix
+        - nix/package.nix
 tagFormat: ${version}
