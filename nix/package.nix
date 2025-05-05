@@ -3,7 +3,7 @@
   self,
 }:
 let
-  baseVersion = "0.7.28";
+  baseVersion = "0.7.29";
   commit = self.shortRev or self.dirtyShortRev or "unknown";
   version = "${baseVersion}-${commit}";
 in

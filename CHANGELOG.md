@@ -1,3 +1,10 @@
+## [0.7.29](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.28...0.7.29) (2025-05-05)
+
+
+### Bug Fixes
+
+* **release:** rename binary from gke-kubeconfiger to gker ([b6d3017](https://github.com/Zebradil/gke-kubeconfiger/commit/b6d3017340516a7cd92ec38627917339bbef5b65))
+
 ## [0.7.28](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.27...0.7.28) (2025-05-05)
 
 
