@@ -55,7 +55,7 @@ before:
   hooks:
     - go mod tidy
 builds:
-  - binary: #@ project_name
+  - binary: gker
     env:
       - CGO_ENABLED=0
     targets:
