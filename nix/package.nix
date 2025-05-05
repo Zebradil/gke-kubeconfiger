@@ -10,7 +10,7 @@ in
 pkgs.buildGoModule {
   pname = "gke-kubeconfiger";
   src = self;
-  vendorHash = "sha256-Wx0T5Cded1SkLrwrNMmN4c9JhhIgG1FXHLU9KgWoEEA=";
+  vendorHash = "sha256-fxMKggaSMi/0BNXBdmP1KhxnR915lc/z48KFUtRGfu8=";
   version = version;
 
   env.CGO_ENABLED = 0;

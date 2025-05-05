@@ -20,6 +20,7 @@
       {
         packages.default = package;
         packages.gke-kubeconfiger = package;
+        packages.nix-update = pkgs.nix-update;
 
         apps.default = flake-utils.lib.mkApp {
           drv = package;
