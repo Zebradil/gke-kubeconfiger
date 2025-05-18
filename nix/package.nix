@@ -23,10 +23,6 @@ pkgs.buildGoModule {
     "-X=main.date=1970-01-01"
   ];
 
-  postInstall = ''
-    mv $out/bin/kubernetes-knot $out/bin/knot
-  '';
-
   meta = {
     changelog = "https://github.com/Zebradil/gke-kubeconfiger/blob/${baseVersion}/CHANGELOG.md";
     description = "Setup kubeconfigs for all accessible GKE clusters";
