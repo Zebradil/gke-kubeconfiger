@@ -3,14 +3,14 @@
   self,
 }:
 let
-  baseVersion = "0.7.41";
+  baseVersion = "0.7.42";
   commit = self.shortRev or self.dirtyShortRev or "unknown";
   version = "${baseVersion}-${commit}";
 in
 pkgs.buildGoModule {
   pname = "gke-kubeconfiger";
   src = self;
-  vendorHash = "sha256-FIRo3fiRF0BelLdHf/5ohVyGFFPqhmuCRF+pRAX0cFw=";
+  vendorHash = "sha256-fzdst2/7JYgIZ8asIbJmkN5TdQ9QogGc9e/KI2EtNfU=";
   version = version;
 
   env.CGO_ENABLED = 0;
