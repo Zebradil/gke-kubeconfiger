@@ -22,8 +22,9 @@ Usage:
   gker [flags]
 
 Flags:
+      --add-metadata         [EXPERIMENTAL] Add GKE metadata to clusters in kubeconfig
       --auth-plugin string   Name of the auth plugin to use in kubeconfig (default "gke-gcloud-auth-plugin")
-      --batch-size int       Batch size (default 10)
+      --concurrency int      Number of concurrent API requests (default 10)
       --config string        config file (default is $HOME/.gker.yaml)
       --dest-dir string      Destination directory to write kubeconfig files.
                              If set, every kubeconfig will be written to a separate file (default ".")
