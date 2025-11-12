@@ -10,7 +10,7 @@ let
     ../cmd
     ../main.go
   ];
-  baseVersion = "0.7.54";
+  baseVersion = "0.7.55";
   commit = self.shortRev or self.dirtyShortRev or "unknown";
   version = "${baseVersion}-${commit}";
 in
@@ -20,7 +20,7 @@ pkgs.buildGoModule {
     root = ./..;
     fileset = sourceFiles;
   };
-  vendorHash = "sha256-SyEGvL0vuTLEd/Wj8+3SD3xSEuI4kqjxAFYJUzPDEwE=";
+  vendorHash = "sha256-5rXB9mNlwSqJlQOC+UgLX3WlVN+yHdFj0GVW6wbie8Q=";
   version = version;
 
   env.CGO_ENABLED = 0;

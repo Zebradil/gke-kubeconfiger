@@ -1,3 +1,10 @@
+## [0.7.55](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.54...0.7.55) (2025-11-12)
+
+
+### Bug Fixes
+
+* **deps:** update golang dependencies (non-major) ([#232](https://github.com/Zebradil/gke-kubeconfiger/issues/232)) ([f806e2a](https://github.com/Zebradil/gke-kubeconfiger/commit/f806e2a8f9671e093c5ee17caf50ba8a6f4dc674))
+
 ## [0.7.54](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.53...0.7.54) (2025-11-04)
 
 
