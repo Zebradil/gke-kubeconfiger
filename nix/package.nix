@@ -3,13 +3,23 @@
   self,
 }:
 let
+  fs = pkgs.lib.fileset;
+  sourceFiles = fs.unions [
+    ../go.mod
+    ../go.sum
+    ../cmd
+    ../main.go
+  ];
   baseVersion = "0.7.54";
   commit = self.shortRev or self.dirtyShortRev or "unknown";
   version = "${baseVersion}-${commit}";
 in
 pkgs.buildGoModule {
   pname = "gke-kubeconfiger";
-  src = self;
+  src = fs.toSource {
+    root = ./..;
+    fileset = sourceFiles;
+  };
   vendorHash = "sha256-SyEGvL0vuTLEd/Wj8+3SD3xSEuI4kqjxAFYJUzPDEwE=";
   version = version;
 
