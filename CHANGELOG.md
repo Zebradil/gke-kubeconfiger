@@ -1,3 +1,10 @@
+## [0.7.58](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.57...0.7.58) (2025-12-11)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/spf13/cobra to v1.10.2 ([#245](https://github.com/Zebradil/gke-kubeconfiger/issues/245)) ([f76fbb4](https://github.com/Zebradil/gke-kubeconfiger/commit/f76fbb4a609a046f49ecae4047345c2e9ff77eb1))
+
 ## [0.7.57](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.56...0.7.57) (2025-12-10)
 
 
