@@ -1,3 +1,10 @@
+## [0.7.59](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.58...0.7.59) (2025-12-26)
+
+
+### Bug Fixes
+
+* **deps:** update module google.golang.org/api to v0.258.0 ([#248](https://github.com/Zebradil/gke-kubeconfiger/issues/248)) ([3b7f1ba](https://github.com/Zebradil/gke-kubeconfiger/commit/3b7f1bac2243cf594bb74a81b741cce9fe81c38b))
+
 ## [0.7.58](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.57...0.7.58) (2025-12-11)
 
 
