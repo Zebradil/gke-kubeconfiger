@@ -9,65 +9,67 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
+var noSleep = func(time.Duration) {}
+
 func TestIsRetryableError(t *testing.T) {
 	tests := []struct {
-		name         string
-		err          error
-		wantCode     int
+		name          string
+		err           error
+		wantCode      int
 		wantRetryable bool
 	}{
 		{
-			name:         "429 Too Many Requests",
-			err:          &googleapi.Error{Code: 429},
-			wantCode:     429,
+			name:          "429 Too Many Requests",
+			err:           &googleapi.Error{Code: 429},
+			wantCode:      429,
 			wantRetryable: true,
 		},
 		{
-			name:         "500 Internal Server Error",
-			err:          &googleapi.Error{Code: 500},
-			wantCode:     500,
+			name:          "500 Internal Server Error",
+			err:           &googleapi.Error{Code: 500},
+			wantCode:      500,
 			wantRetryable: true,
 		},
 		{
-			name:         "502 Bad Gateway",
-			err:          &googleapi.Error{Code: 502},
-			wantCode:     502,
+			name:          "502 Bad Gateway",
+			err:           &googleapi.Error{Code: 502},
+			wantCode:      502,
 			wantRetryable: true,
 		},
 		{
-			name:         "503 Service Unavailable",
-			err:          &googleapi.Error{Code: 503},
-			wantCode:     503,
+			name:          "503 Service Unavailable",
+			err:           &googleapi.Error{Code: 503},
+			wantCode:      503,
 			wantRetryable: true,
 		},
 		{
-			name:         "504 Gateway Timeout",
-			err:          &googleapi.Error{Code: 504},
-			wantCode:     504,
+			name:          "504 Gateway Timeout",
+			err:           &googleapi.Error{Code: 504},
+			wantCode:      504,
 			wantRetryable: true,
 		},
 		{
-			name:         "400 Bad Request",
-			err:          &googleapi.Error{Code: 400},
-			wantCode:     400,
+			name:          "400 Bad Request",
+			err:           &googleapi.Error{Code: 400},
+			wantCode:      400,
 			wantRetryable: false,
 		},
 		{
-			name:         "403 Forbidden",
-			err:          &googleapi.Error{Code: 403},
-			wantCode:     403,
+			name:          "403 Forbidden",
+			err:           &googleapi.Error{Code: 403},
+			wantCode:      403,
 			wantRetryable: false,
 		},
 		{
-			name:         "404 Not Found",
-			err:          &googleapi.Error{Code: 404},
-			wantCode:     404,
+			name:          "404 Not Found",
+			err:           &googleapi.Error{Code: 404},
+			wantCode:      404,
 			wantRetryable: false,
 		},
 		{
-			name:         "non-API error",
-			err:          errors.New("some random error"),
-			wantCode:     0,
+			name:          "non-API error",
+			err:           errors.New("some random error"),
+			wantCode:      0,
 			wantRetryable: false,
 		},
 	}
@@ -162,9 +164,9 @@ func TestComputeBackoff(t *testing.T) {
 			Header: http.Header{"Retry-After": []string{"10"}},
 		}
 		delay := computeBackoff(0, http.StatusTooManyRequests, err)
-		// Base is 10s, with jitter [0.5, 1.5) => [5s, 15s)
-		if delay < 5*time.Second || delay >= 15*time.Second {
-			t.Errorf("expected delay in [5s, 15s), got %v", delay)
+		// Base is 10s, with upward-only jitter [1.0, 1.5) => [10s, 15s)
+		if delay < 10*time.Second || delay >= 15*time.Second {
+			t.Errorf("expected delay in [10s, 15s), got %v", delay)
 		}
 	})
 
@@ -175,6 +177,14 @@ func TestComputeBackoff(t *testing.T) {
 			t.Errorf("delay should be capped at 60s, got %v", delay)
 		}
 	})
+
+	t.Run("handles very large attempt without overflow", func(t *testing.T) {
+		err := &googleapi.Error{Code: 500}
+		delay := computeBackoff(100, 500, err)
+		if delay <= 0 || delay > 60*time.Second {
+			t.Errorf("expected positive delay <= 60s for large attempt, got %v", delay)
+		}
+	})
 }
 
 func TestWithRetry_ImmediateSuccess(t *testing.T) {
@@ -182,7 +192,7 @@ func TestWithRetry_ImmediateSuccess(t *testing.T) {
 	result, err := withRetry(3, "test-op", func() (string, error) {
 		calls++
 		return "ok", nil
-	})
+	}, noSleep)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -202,7 +212,7 @@ func TestWithRetry_TransientThenSuccess(t *testing.T) {
 			return "", &googleapi.Error{Code: 429}
 		}
 		return "ok", nil
-	})
+	}, noSleep)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -219,7 +229,7 @@ func TestWithRetry_ExhaustedRetries(t *testing.T) {
 	_, err := withRetry(2, "test-op", func() (string, error) {
 		calls++
 		return "", &googleapi.Error{Code: 429, Message: "rate limited"}
-	})
+	}, noSleep)
 	if err == nil {
 		t.Fatal("expected error after exhausting retries")
 	}
@@ -234,7 +244,7 @@ func TestWithRetry_NonRetryableError(t *testing.T) {
 	_, err := withRetry(3, "test-op", func() (string, error) {
 		calls++
 		return "", &googleapi.Error{Code: 403, Message: "forbidden"}
-	})
+	}, noSleep)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -248,7 +258,7 @@ func TestWithRetry_ZeroRetries(t *testing.T) {
 	_, err := withRetry(0, "test-op", func() (string, error) {
 		calls++
 		return "", &googleapi.Error{Code: 429}
-	})
+	}, noSleep)
 	if err == nil {
 		t.Fatal("expected error")
 	}

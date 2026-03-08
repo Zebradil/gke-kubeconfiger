@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	yaml "gopkg.in/yaml.v3"
 
@@ -173,7 +174,7 @@ func run(cmd *cobra.Command, args []string) {
 	cfg.AuthPlugin = viper.GetString("auth-plugin")
 	cfg.Concurrency = viper.GetInt("concurrency")
 	cfg.DestDir = viper.GetString("dest-dir")
-	cfg.MaxRetries = viper.GetInt("max-retries")
+	cfg.MaxRetries = max(0, viper.GetInt("max-retries"))
 	cfg.Projects = viper.GetStringSlice("projects")
 	cfg.Rename = viper.GetBool("rename")
 	cfg.RenameTpl = viper.GetString("rename-tpl")
@@ -247,7 +248,7 @@ func getProjects(maxRetries int) []string {
 	}
 	projects, err := withRetry(maxRetries, "list-projects", func() (*crm.ListProjectsResponse, error) {
 		return crmService.Projects.List().Filter("lifecycleState:ACTIVE").Do()
-	})
+	}, time.Sleep)
 	if err != nil {
 		log.Fatalf("Failed to list projects: %v", err)
 	}
@@ -275,7 +276,7 @@ func filterProjects(semaphore chan struct{}, projects []string, out chan<- strin
 			defer func() { <-semaphore }()
 			containerServiceRes, err := withRetry(maxRetries, "check-container-api", func() (*su.GoogleApiServiceusageV1Service, error) {
 				return suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
-			})
+			}, time.Sleep)
 			if err != nil {
 				log.WithField("projectID", project).Errorf("Failed to get container service: %v", err)
 				return
@@ -303,7 +304,7 @@ func getCredentials(semaphore chan struct{}, in <-chan string, out chan<- creden
 			defer wg.Done()
 			clusters, err := withRetry(maxRetries, "list-clusters", func() (*cnt.ListClustersResponse, error) {
 				return containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project)).Do()
-			})
+			}, time.Sleep)
 			<-semaphore
 			if err != nil {
 				log.WithField("projectID", project).Errorf("Failed to list clusters: %v", err)

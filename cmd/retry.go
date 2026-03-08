@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"math"
 	"math/rand/v2"
 	"net/http"
 	"strconv"
@@ -14,7 +13,7 @@ import (
 
 // withRetry executes fn and retries on transient API errors (429, 5xx)
 // with exponential backoff and jitter.
-func withRetry[T any](maxRetries int, operation string, fn func() (T, error)) (T, error) {
+func withRetry[T any](maxRetries int, operation string, fn func() (T, error), sleepFn func(time.Duration)) (T, error) {
 	var lastErr error
 	for attempt := range maxRetries + 1 {
 		result, err := fn()
@@ -43,7 +42,7 @@ func withRetry[T any](maxRetries int, operation string, fn func() (T, error)) (T
 			"error":      err,
 		}).Warn("Retrying after transient API error")
 
-		time.Sleep(delay)
+		sleepFn(delay)
 	}
 
 	var zero T
@@ -94,18 +93,33 @@ func getRetryAfter(err error) time.Duration {
 // For 429 errors, it respects the Retry-After header if present.
 // Otherwise, it uses exponential backoff with jitter.
 func computeBackoff(attempt, statusCode int, err error) time.Duration {
-	const baseDelay = 1 * time.Second
-	const maxDelay = 60 * time.Second
+	const (
+		baseDelay = 1 * time.Second
+		maxDelay  = 60 * time.Second
+	)
 
 	var delay time.Duration
 	if statusCode == http.StatusTooManyRequests {
 		if ra := getRetryAfter(err); ra > 0 {
-			delay = ra
-		} else {
-			delay = baseDelay * time.Duration(math.Pow(2, float64(attempt)))
+			// Retry-After present: use server value with upward-only jitter [1.0, 1.5)
+			jitter := 1.0 + rand.Float64()*0.5
+			delay = time.Duration(float64(ra) * jitter)
+			if delay > maxDelay {
+				delay = maxDelay
+			}
+			return delay
 		}
+	}
+
+	// Exponential backoff using bit shift to avoid float overflow.
+	// Guard against overflow: for attempt >= 62, shift would overflow int64.
+	if attempt >= 62 {
+		delay = maxDelay
 	} else {
-		delay = baseDelay * time.Duration(math.Pow(2, float64(attempt)))
+		delay = baseDelay << attempt
+		if delay <= 0 || delay > maxDelay {
+			delay = maxDelay
+		}
 	}
 
 	// Add jitter: multiply by random factor in [0.5, 1.5)
