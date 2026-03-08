@@ -239,7 +239,9 @@ func getProjects() []string {
 	if err != nil {
 		log.Fatalf("Failed to create cloudresourcemanager service: %v", err)
 	}
-	projects, err := crmService.Projects.List().Filter("lifecycleState:ACTIVE").Do()
+	projects, err := doWith429Retry(ctx, "list projects", func() (*crm.ListProjectsResponse, error) {
+		return crmService.Projects.List().Filter("lifecycleState:ACTIVE").Do()
+	})
 	if err != nil {
 		log.Fatalf("Failed to list projects: %v", err)
 	}
@@ -265,7 +267,9 @@ func filterProjects(semaphore chan struct{}, projects []string, out chan<- strin
 		go func(project string) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
-			containerServiceRes, err := suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
+			containerServiceRes, err := doWith429Retry(ctx, "get container service", func() (*su.GoogleApiServiceusageV1Service, error) {
+				return suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
+			})
 			if err != nil {
 				log.WithField("projectID", project).Errorf("Failed to get container service: %v", err)
 				return
@@ -291,7 +295,9 @@ func getCredentials(semaphore chan struct{}, in <-chan string, out chan<- creden
 		semaphore <- struct{}{}
 		go func(project string) {
 			defer wg.Done()
-			clusters, err := containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project)).Do()
+			clusters, err := doWith429Retry(ctx, "list clusters", func() (*cnt.ListClustersResponse, error) {
+				return containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project)).Do()
+			})
 			<-semaphore
 			if err != nil {
 				log.WithField("projectID", project).Errorf("Failed to list clusters: %v", err)

@@ -104,6 +104,8 @@ gker --rename --rename-tpl "{{ .ClusterName }}"
 ### Batch size
 
 By default, `gker` processes clusters in batches of 10. You can change this value using the `--batch-size`
+flag. Requests that receive a transient `429 Too Many Requests` response are retried automatically with
+backoff before the operation fails.
 
 ### Auth plugin
 
