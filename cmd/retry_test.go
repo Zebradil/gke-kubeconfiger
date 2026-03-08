@@ -19,7 +19,6 @@ func TestDoWith429RetryImmediateSuccess(t *testing.T) {
 		attempts++
 		return "ok", nil
 	})
-
 	if err != nil {
 		t.Fatalf("doWith429Retry returned error: %v", err)
 	}
@@ -42,7 +41,6 @@ func TestDoWith429RetryRetriesThenSucceeds(t *testing.T) {
 		}
 		return "ok", nil
 	})
-
 	if err != nil {
 		t.Fatalf("doWith429Retry returned error: %v", err)
 	}
@@ -109,7 +107,6 @@ func TestDoWith429RetryHonorsRetryAfterSeconds(t *testing.T) {
 		}
 		return "ok", nil
 	})
-
 	if err != nil {
 		t.Fatalf("doWith429Retry returned error: %v", err)
 	}

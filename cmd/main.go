@@ -11,16 +11,13 @@ import (
 	"strings"
 	"sync"
 
-	yaml "gopkg.in/yaml.v3"
-
 	log "github.com/sirupsen/logrus"
-
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	crm "google.golang.org/api/cloudresourcemanager/v1"
 	cnt "google.golang.org/api/container/v1"
 	su "google.golang.org/api/serviceusage/v1"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // Name of the user to use in kubeconfig entries.
