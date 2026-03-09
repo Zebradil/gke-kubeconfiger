@@ -58,6 +58,9 @@ func doWith429Retry[T any](ctx context.Context, requestName string, do func() (T
 			return zero, err
 		}
 
+		if retryDelay > delay {
+			delay = retryDelay
+		}
 		delay *= 2
 		if delay > retry429MaxDelay {
 			delay = retry429MaxDelay
@@ -75,6 +78,9 @@ func getRetryDelay(err error, fallback time.Duration, now time.Time) (time.Durat
 
 	if apiErr.Header != nil {
 		if retryAfter, ok := parseRetryAfter(apiErr.Header.Get("Retry-After"), now); ok {
+			if retryAfter > retry429MaxDelay {
+				retryAfter = retry429MaxDelay
+			}
 			return retryAfter, true
 		}
 	}
@@ -92,6 +98,13 @@ func parseRetryAfter(value string, now time.Time) (time.Duration, bool) {
 		if seconds < 0 {
 			return 0, false
 		}
+		maxSeconds := int(retry429MaxDelay.Seconds())
+		if maxSeconds < 1 {
+			maxSeconds = 1
+		}
+		if seconds > maxSeconds {
+			seconds = maxSeconds
+		}
 		return time.Duration(seconds) * time.Second, true
 	}
 
@@ -104,5 +117,9 @@ func parseRetryAfter(value string, now time.Time) (time.Duration, bool) {
 		return 0, true
 	}
 
-	return retryTime.Sub(now), true
+	d := retryTime.Sub(now)
+	if d > retry429MaxDelay {
+		d = retry429MaxDelay
+	}
+	return d, true
 }
