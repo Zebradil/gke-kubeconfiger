@@ -1,11 +1,9 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	"gker/cmd"
+	log "github.com/sirupsen/logrus"
 )
-
 var (
 	version = "dev"
 	commit  = "none"
