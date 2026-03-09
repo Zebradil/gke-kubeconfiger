@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -63,7 +64,7 @@ func doWith429Retry[T any](ctx context.Context, requestName string, do func() (T
 		}
 	}
 
-	return zero, nil
+	panic("doWith429Retry: reached unreachable code; check retry429MaxAttempts")
 }
 
 func getRetryDelay(err error, fallback time.Duration, now time.Time) (time.Duration, bool) {
@@ -82,6 +83,7 @@ func getRetryDelay(err error, fallback time.Duration, now time.Time) (time.Durat
 }
 
 func parseRetryAfter(value string, now time.Time) (time.Duration, bool) {
+	value = strings.TrimSpace(value)
 	if value == "" {
 		return 0, false
 	}
