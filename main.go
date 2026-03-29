@@ -1,9 +1,9 @@
 package main
 
 import (
-	"gker/cmd"
-
 	log "github.com/sirupsen/logrus"
+
+	"gker/cmd"
 )
 
 var (
