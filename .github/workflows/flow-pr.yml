@@ -9,11 +9,15 @@ on:
       - '.github/workflows/flow-pr.yml'
       - '.github/workflows/job-lint.yml'
       - '.github/workflows/job-test.yml'
+      - '.github/scripts/update-flake-version'
       - '.goreleaser.yml'
       - 'cmd/**'
       - 'go.mod'
       - 'go.sum'
       - 'main.go'
+      - 'nix/**'
+      - 'flake.nix'
+      - 'flake.lock'
 
 jobs:
   lint:
