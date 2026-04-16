@@ -18,16 +18,18 @@
         package = import ./nix/package.nix { inherit pkgs self; };
       in
       {
-        packages.default = package;
-        packages.gke-kubeconfiger = package;
-        packages.nix-update = pkgs.nix-update;
+        packages = {
+          inherit (pkgs) nix-update;
+          default = package;
+          gke-kubeconfiger = package;
+        };
 
         apps.default = flake-utils.lib.mkApp {
           drv = package;
           name = "gker";
         };
 
-        devShells.default = import ./nix/shell.nix { inherit pkgs package; };
+        devShells.default = import ./nix/shell.nix { inherit pkgs; };
       }
     );
 }

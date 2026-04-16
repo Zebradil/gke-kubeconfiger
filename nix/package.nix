@@ -15,13 +15,13 @@ let
   version = "${baseVersion}-${commit}";
 in
 pkgs.buildGoModule {
+  inherit version;
   pname = "gke-kubeconfiger";
   src = fs.toSource {
     root = ./..;
     fileset = sourceFiles;
   };
   vendorHash = "sha256-MvReNwtRJtdueLJRTKAlD8QrUzChxpoI6xc0ow91HQ0=";
-  version = version;
 
   env.CGO_ENABLED = 0;
   doCheck = false;
