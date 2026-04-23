@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	yaml "gopkg.in/yaml.v3"
 
@@ -35,6 +36,7 @@ type programConfig struct {
 	DestDir        string
 	KubeconfigPath string
 	LogLevel       string
+	MaxRetries     int
 	Projects       []string
 	Rename         bool
 	RenameTpl      string
@@ -42,7 +44,7 @@ type programConfig struct {
 }
 
 func (c programConfig) String() string {
-	return fmt.Sprintf(`{AddMetadata: %t, AuthPlugin: '%s', Concurrency: %d, ConfigFile: '%s', DestDir: '%s', KubeconfigPath: '%s', Projects: %v, Rename: %t, RenameTpl: '%s', Split: %t}`, c.AddMetadata, c.AuthPlugin, c.Concurrency, c.ConfigFile, c.DestDir, c.KubeconfigPath, c.Projects, c.Rename, c.RenameTpl, c.Split)
+	return fmt.Sprintf(`{AddMetadata: %t, AuthPlugin: '%s', Concurrency: %d, ConfigFile: '%s', DestDir: '%s', KubeconfigPath: '%s', MaxRetries: %d, Projects: %v, Rename: %t, RenameTpl: '%s', Split: %t}`, c.AddMetadata, c.AuthPlugin, c.Concurrency, c.ConfigFile, c.DestDir, c.KubeconfigPath, c.MaxRetries, c.Projects, c.Rename, c.RenameTpl, c.Split)
 }
 
 var cfg programConfig
@@ -133,6 +135,10 @@ func NewRootCmd(version, commit, date string) *cobra.Command {
 
 	rootCmd.
 		Flags().
+		Int("max-retries", 5, "Maximum number of retries for transient API errors (429, 5xx)")
+
+	rootCmd.
+		Flags().
 		StringSlice("projects", []string{}, "Projects to filter by")
 
 	rootCmd.
@@ -168,6 +174,7 @@ func run(cmd *cobra.Command, args []string) {
 	cfg.AuthPlugin = viper.GetString("auth-plugin")
 	cfg.Concurrency = viper.GetInt("concurrency")
 	cfg.DestDir = viper.GetString("dest-dir")
+	cfg.MaxRetries = max(0, viper.GetInt("max-retries"))
 	cfg.Projects = viper.GetStringSlice("projects")
 	cfg.Rename = viper.GetBool("rename")
 	cfg.RenameTpl = viper.GetString("rename-tpl")
@@ -219,11 +226,11 @@ func run(cmd *cobra.Command, args []string) {
 
 	projects := cfg.Projects
 	if len(cfg.Projects) == 0 {
-		projects = getProjects()
+		projects = getProjects(cfg.MaxRetries)
 	}
 
-	go filterProjects(semaphore, projects, filteredProjects)
-	go getCredentials(semaphore, filteredProjects, credentials, cfg.AuthPlugin)
+	go filterProjects(semaphore, projects, filteredProjects, cfg.MaxRetries)
+	go getCredentials(semaphore, filteredProjects, credentials, cfg.AuthPlugin, cfg.MaxRetries)
 
 	if cfg.Split {
 		writeCredentialsToFile(credentials, cfg.DestDir, contextNameTemplate, cfg.AddMetadata)
@@ -233,13 +240,15 @@ func run(cmd *cobra.Command, args []string) {
 	}
 }
 
-func getProjects() []string {
+func getProjects(maxRetries int) []string {
 	ctx := context.Background()
 	crmService, err := crm.NewService(ctx)
 	if err != nil {
 		log.Fatalf("Failed to create cloudresourcemanager service: %v", err)
 	}
-	projects, err := crmService.Projects.List().Filter("lifecycleState:ACTIVE").Do()
+	projects, err := withRetry(maxRetries, "list-projects", func() (*crm.ListProjectsResponse, error) {
+		return crmService.Projects.List().Filter("lifecycleState:ACTIVE").Do()
+	}, time.Sleep)
 	if err != nil {
 		log.Fatalf("Failed to list projects: %v", err)
 	}
@@ -250,7 +259,7 @@ func getProjects() []string {
 	return projectIDs
 }
 
-func filterProjects(semaphore chan struct{}, projects []string, out chan<- string) {
+func filterProjects(semaphore chan struct{}, projects []string, out chan<- string, maxRetries int) {
 	ctx := context.Background()
 	suService, err := su.NewService(ctx)
 	if err != nil {
@@ -265,7 +274,9 @@ func filterProjects(semaphore chan struct{}, projects []string, out chan<- strin
 		go func(project string) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
-			containerServiceRes, err := suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
+			containerServiceRes, err := withRetry(maxRetries, "check-container-api", func() (*su.GoogleApiServiceusageV1Service, error) {
+				return suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
+			}, time.Sleep)
 			if err != nil {
 				log.WithField("projectID", project).Errorf("Failed to get container service: %v", err)
 				return
@@ -279,7 +290,7 @@ func filterProjects(semaphore chan struct{}, projects []string, out chan<- strin
 	close(out)
 }
 
-func getCredentials(semaphore chan struct{}, in <-chan string, out chan<- credentialsData, authPlugin string) {
+func getCredentials(semaphore chan struct{}, in <-chan string, out chan<- credentialsData, authPlugin string, maxRetries int) {
 	ctx := context.Background()
 	containerService, err := cnt.NewService(ctx)
 	if err != nil {
@@ -291,7 +302,9 @@ func getCredentials(semaphore chan struct{}, in <-chan string, out chan<- creden
 		semaphore <- struct{}{}
 		go func(project string) {
 			defer wg.Done()
-			clusters, err := containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project)).Do()
+			clusters, err := withRetry(maxRetries, "list-clusters", func() (*cnt.ListClustersResponse, error) {
+				return containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project)).Do()
+			}, time.Sleep)
 			<-semaphore
 			if err != nil {
 				log.WithField("projectID", project).Errorf("Failed to list clusters: %v", err)
