@@ -1,3 +1,18 @@
+## [0.7.79](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.78...0.7.79) (2026-06-20)
+
+
+### Bug Fixes
+
+* **ci:** use correct update-flake script name ([d7b9644](https://github.com/Zebradil/gke-kubeconfiger/commit/d7b9644dfdb64589cf19dde294d0a191116eb305))
+* **deps:** update golang dependencies (non-major) to v0.282.0 ([#307](https://github.com/Zebradil/gke-kubeconfiger/issues/307)) ([1ad6a38](https://github.com/Zebradil/gke-kubeconfiger/commit/1ad6a3851d4e0f09ca7eaae78959211b65d06811))
+* **deps:** update golang dependencies (non-major) to v0.283.0 ([#308](https://github.com/Zebradil/gke-kubeconfiger/issues/308)) ([32725cc](https://github.com/Zebradil/gke-kubeconfiger/commit/32725cc798da2307fa159105f6b22d0bc146e3ee))
+* **deps:** update golang dependencies (non-major) to v0.284.0 ([#311](https://github.com/Zebradil/gke-kubeconfiger/issues/311)) ([b540a27](https://github.com/Zebradil/gke-kubeconfiger/commit/b540a27d25e9bba8a642dc75a9cc34628f43de7a))
+* **deps:** update module google.golang.org/api to v0.276.0 ([#293](https://github.com/Zebradil/gke-kubeconfiger/issues/293)) ([a0dc8c8](https://github.com/Zebradil/gke-kubeconfiger/commit/a0dc8c8a88a80fc1240b2f2904c508b82d52253c))
+* **deps:** update module google.golang.org/api to v0.277.0 ([#297](https://github.com/Zebradil/gke-kubeconfiger/issues/297)) ([2fc0f8f](https://github.com/Zebradil/gke-kubeconfiger/commit/2fc0f8f9414f6d1050647fc85eedd03f442abf7a))
+* **deps:** update module google.golang.org/api to v0.278.0 ([#299](https://github.com/Zebradil/gke-kubeconfiger/issues/299)) ([c7fcb5f](https://github.com/Zebradil/gke-kubeconfiger/commit/c7fcb5f9962e5c925ad09ec7ec1a65e2552b8291))
+* **deps:** update module google.golang.org/api to v0.279.0 ([#301](https://github.com/Zebradil/gke-kubeconfiger/issues/301)) ([a1e6953](https://github.com/Zebradil/gke-kubeconfiger/commit/a1e6953cdbd8dcb519fd6d405505572899297441))
+* **deps:** update module google.golang.org/api to v0.280.0 ([#303](https://github.com/Zebradil/gke-kubeconfiger/issues/303)) ([9a3fa8d](https://github.com/Zebradil/gke-kubeconfiger/commit/9a3fa8d6b65f918a04396ee04ed2f8087b2a12c7))
+
 ## [0.7.78](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.77...0.7.78) (2026-04-15)
 
 
