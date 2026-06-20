@@ -3,24 +3,26 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
-	yaml "gopkg.in/yaml.v3"
-
+	gax "github.com/googleapis/gax-go/v2"
 	log "github.com/sirupsen/logrus"
-
-	crm "google.golang.org/api/cloudresourcemanager/v1"
-	cnt "google.golang.org/api/container/v1"
-	su "google.golang.org/api/serviceusage/v1"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	crm "google.golang.org/api/cloudresourcemanager/v1"
+	cnt "google.golang.org/api/container/v1"
+	"google.golang.org/api/googleapi"
+	su "google.golang.org/api/serviceusage/v1"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // Name of the user to use in kubeconfig entries.
@@ -57,6 +59,48 @@ type credentialsData struct {
 }
 
 var cfgFile string
+
+// maxRetryAttempts is the number of times a transient Google API call is retried
+// before giving up.
+const maxRetryAttempts = 5
+
+// retryableDo executes fn, retrying on transient Google API errors (HTTP 429
+// "rate limit exceeded" and 5xx) using exponential backoff with jitter. The
+// Google API libraries surface these as *googleapi.Error.
+func retryableDo[T any](ctx context.Context, fn func() (T, error)) (T, error) {
+	bo := gax.Backoff{
+		Initial:    time.Second,
+		Max:        30 * time.Second,
+		Multiplier: 2,
+	}
+	var (
+		result T
+		err    error
+	)
+	for attempt := 1; attempt <= maxRetryAttempts; attempt++ {
+		result, err = fn()
+		if err == nil || !isRetryable(err) || attempt == maxRetryAttempts {
+			return result, err
+		}
+		pause := bo.Pause()
+		log.WithError(err).Warnf("Retriable API error, retrying in %s (attempt %d/%d)", pause, attempt, maxRetryAttempts)
+		select {
+		case <-ctx.Done():
+			return result, ctx.Err()
+		case <-time.After(pause):
+		}
+	}
+	return result, err
+}
+
+// isRetryable reports whether err is a transient Google API error worth retrying.
+func isRetryable(err error) bool {
+	var gerr *googleapi.Error
+	if errors.As(err, &gerr) {
+		return gerr.Code == http.StatusTooManyRequests || gerr.Code >= http.StatusInternalServerError
+	}
+	return false
+}
 
 func init() {
 	cobra.OnInitialize(initConfig)
@@ -239,7 +283,9 @@ func getProjects() []string {
 	if err != nil {
 		log.Fatalf("Failed to create cloudresourcemanager service: %v", err)
 	}
-	projects, err := crmService.Projects.List().Filter("lifecycleState:ACTIVE").Do()
+	projects, err := retryableDo(ctx, func() (*crm.ListProjectsResponse, error) {
+		return crmService.Projects.List().Filter("lifecycleState:ACTIVE").Do()
+	})
 	if err != nil {
 		log.Fatalf("Failed to list projects: %v", err)
 	}
@@ -265,7 +311,9 @@ func filterProjects(semaphore chan struct{}, projects []string, out chan<- strin
 		go func(project string) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
-			containerServiceRes, err := suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
+			containerServiceRes, err := retryableDo(ctx, func() (*su.GoogleApiServiceusageV1Service, error) {
+				return suServicesService.Get(fmt.Sprintf("projects/%s/services/container.googleapis.com", project)).Do()
+			})
 			if err != nil {
 				log.WithField("projectID", project).Errorf("Failed to get container service: %v", err)
 				return
@@ -291,7 +339,9 @@ func getCredentials(semaphore chan struct{}, in <-chan string, out chan<- creden
 		semaphore <- struct{}{}
 		go func(project string) {
 			defer wg.Done()
-			clusters, err := containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project)).Do()
+			clusters, err := retryableDo(ctx, func() (*cnt.ListClustersResponse, error) {
+				return containerService.Projects.Locations.Clusters.List(fmt.Sprintf("projects/%s/locations/-", project)).Do()
+			})
 			<-semaphore
 			if err != nil {
 				log.WithField("projectID", project).Errorf("Failed to list clusters: %v", err)
