@@ -204,7 +204,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	var (
-		kubeconfig map[string]interface{}
+		kubeconfig map[string]any
 		err        error
 	)
 
@@ -386,13 +386,13 @@ func writeCredentialsToFile(credentials <-chan credentialsData, destDir string, 
 	}
 }
 
-func inflateKubeconfig(credentials <-chan credentialsData, kubeconfig map[string]interface{}, contextNameTemplate *template.Template, withMetadata bool) {
+func inflateKubeconfig(credentials <-chan credentialsData, kubeconfig map[string]any, contextNameTemplate *template.Template, withMetadata bool) {
 	for data := range credentials {
 		addCredentialsToKubeconfig(kubeconfig, data, contextNameTemplate, withMetadata)
 	}
 }
 
-func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credentialsData, contextNameTemplate *template.Template, withMetadata bool) {
+func addCredentialsToKubeconfig(kubeconfig map[string]any, data credentialsData, contextNameTemplate *template.Template, withMetadata bool) {
 	contextNameBytes := &bytes.Buffer{}
 	err := contextNameTemplate.Execute(contextNameBytes, map[string]string{
 		"Server":      data.Server,
@@ -404,7 +404,7 @@ func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credenti
 		log.Fatalf("Failed to execute kubeconfig template: %v", err)
 	}
 	contextName := contextNameBytes.String()
-	cluster := map[string]interface{}{
+	cluster := map[string]any{
 		"certificate-authority-data": data.CertificateAuthorityData,
 		"server":                     data.Server,
 	}
@@ -412,12 +412,12 @@ func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credenti
 		addMetadataToCluster(cluster, data)
 	}
 	replaceOrAppend(kubeconfig, "clusters", contextName, "cluster", cluster)
-	replaceOrAppend(kubeconfig, "contexts", contextName, "context", map[string]interface{}{
+	replaceOrAppend(kubeconfig, "contexts", contextName, "context", map[string]any{
 		"cluster": contextName,
 		"user":    userName,
 	})
-	replaceOrAppend(kubeconfig, "users", userName, "user", map[string]interface{}{
-		"exec": map[string]interface{}{
+	replaceOrAppend(kubeconfig, "users", userName, "user", map[string]any{
+		"exec": map[string]any{
 			"apiVersion":         "client.authentication.k8s.io/v1beta1",
 			"command":            data.AuthPlugin,
 			"installHint":        "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin",
@@ -426,25 +426,25 @@ func addCredentialsToKubeconfig(kubeconfig map[string]interface{}, data credenti
 	})
 }
 
-func addMetadataToCluster(cluster map[string]interface{}, data credentialsData) {
-	cluster["gkeMetadata"] = map[string]interface{}{
+func addMetadataToCluster(cluster map[string]any, data credentialsData) {
+	cluster["gkeMetadata"] = map[string]any{
 		"projectID":   data.ProjectID,
 		"location":    data.Location,
 		"clusterName": data.ClusterName,
 	}
 }
 
-func replaceOrAppend(kubeconfig map[string]interface{}, listName, itemName, key string, value interface{}) {
-	list := kubeconfig[listName].([]interface{})
+func replaceOrAppend(kubeconfig map[string]any, listName, itemName, key string, value any) {
+	list := kubeconfig[listName].([]any)
 	for _, rawItem := range list {
-		item := rawItem.(map[string]interface{})
+		item := rawItem.(map[string]any)
 		if item["name"] == itemName {
 			item[key] = value
 			return
 		}
 	}
 
-	list = append(list, map[string]interface{}{
+	list = append(list, map[string]any{
 		"name": itemName,
 		key:    value,
 	})
@@ -493,7 +493,7 @@ func isExist(path string) (bool, error) {
 	return false, err
 }
 
-func unmarshalKubeconfigToMap(filePath string) (map[string]interface{}, error) {
+func unmarshalKubeconfigToMap(filePath string) (map[string]any, error) {
 	ok, err := isExist(filePath)
 	if err != nil {
 		return nil, err
@@ -507,7 +507,7 @@ func unmarshalKubeconfigToMap(filePath string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	var config map[string]interface{}
+	var config map[string]any
 	err = yaml.Unmarshal(file, &config)
 	if err != nil {
 		return nil, err
@@ -515,19 +515,19 @@ func unmarshalKubeconfigToMap(filePath string) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func getEmptyKubeconfig() map[string]interface{} {
-	return map[string]interface{}{
+func getEmptyKubeconfig() map[string]any {
+	return map[string]any{
 		"apiVersion":      "v1",
-		"clusters":        []interface{}{},
-		"contexts":        []interface{}{},
+		"clusters":        []any{},
+		"contexts":        []any{},
 		"current-context": "",
 		"kind":            "Config",
-		"preferences":     map[string]interface{}{},
-		"users":           []interface{}{},
+		"preferences":     map[string]any{},
+		"users":           []any{},
 	}
 }
 
-func encodeKubeconfig(kubeconfig map[string]interface{}) *bytes.Buffer {
+func encodeKubeconfig(kubeconfig map[string]any) *bytes.Buffer {
 	kubeconfigBytes := &bytes.Buffer{}
 	enc := yaml.NewEncoder(kubeconfigBytes)
 	enc.SetIndent(2)
