@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.79...0.8.0) (2026-06-20)
+
+
+### Features
+
+* retry transient Google API errors (429/5xx) ([#313](https://github.com/Zebradil/gke-kubeconfiger/issues/313)) ([f34346f](https://github.com/Zebradil/gke-kubeconfiger/commit/f34346fab5c0372e77ba0d18ba70e645671a2ff2))
+
 ## [0.7.79](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.78...0.7.79) (2026-06-20)
 
 
