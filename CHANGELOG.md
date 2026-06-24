@@ -1,3 +1,10 @@
+## [0.8.1](https://github.com/Zebradil/gke-kubeconfiger/compare/0.8.0...0.8.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* **deps:** update golang dependencies (non-major) ([#314](https://github.com/Zebradil/gke-kubeconfiger/issues/314)) ([60d60c6](https://github.com/Zebradil/gke-kubeconfiger/commit/60d60c6dba013d6c2b71ba3ca84bba0c5f00d9f7))
+
 # [0.8.0](https://github.com/Zebradil/gke-kubeconfiger/compare/0.7.79...0.8.0) (2026-06-20)
 
 
