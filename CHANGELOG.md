@@ -1,3 +1,11 @@
+## [0.8.2](https://github.com/Zebradil/gke-kubeconfiger/compare/0.8.1...0.8.2) (2026-06-24)
+
+
+### Bug Fixes
+
+* create target directory and config if absent ([17ce5e6](https://github.com/Zebradil/gke-kubeconfiger/commit/17ce5e6607ddbc57f2f7b2a19726eea7b6216f26))
+* panic in replaceOrAppend ([67266b1](https://github.com/Zebradil/gke-kubeconfiger/commit/67266b130f15e884186f80702277c7dc88784364))
+
 ## [0.8.1](https://github.com/Zebradil/gke-kubeconfiger/compare/0.8.0...0.8.1) (2026-06-24)
 
 
