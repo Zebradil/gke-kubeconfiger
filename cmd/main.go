@@ -451,8 +451,11 @@ func replaceOrAppend(kubeconfig map[string]any, listName, itemName, key string, 
 	kubeconfig[listName] = list
 }
 
-func writeKubeconfigToFile(kubeconfig io.Reader, filepath string) {
-	out, err := os.OpenFile(filepath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600) // #nosec G304
+func writeKubeconfigToFile(kubeconfig io.Reader, path string) {
+	if err := createDirectory(filepath.Dir(path)); err != nil {
+		log.Fatalf("Failed to create directory: %v", err)
+	}
+	out, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600) // #nosec G304
 	if err != nil {
 		log.Fatalf("Failed to create file: %v", err)
 	}
@@ -511,6 +514,9 @@ func unmarshalKubeconfigToMap(filePath string) (map[string]any, error) {
 	err = yaml.Unmarshal(file, &config)
 	if err != nil {
 		return nil, err
+	}
+	if config == nil {
+		return getEmptyKubeconfig(), nil
 	}
 	return config, nil
 }
