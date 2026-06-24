@@ -435,7 +435,7 @@ func addMetadataToCluster(cluster map[string]any, data credentialsData) {
 }
 
 func replaceOrAppend(kubeconfig map[string]any, listName, itemName, key string, value any) {
-	list := kubeconfig[listName].([]any)
+	list, _ := kubeconfig[listName].([]any)
 	for _, rawItem := range list {
 		item := rawItem.(map[string]any)
 		if item["name"] == itemName {
