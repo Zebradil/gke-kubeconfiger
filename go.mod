@@ -2,7 +2,7 @@ module gker
 
 go 1.25.8
 
-toolchain go1.26.5
+toolchain go1.26.6
 
 require (
 	github.com/googleapis/gax-go/v2 v2.23.0
