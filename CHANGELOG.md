@@ -1,3 +1,10 @@
+## [0.8.12](https://github.com/Zebradil/gke-kubeconfiger/compare/0.8.11...0.8.12) (2026-08-21)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/sirupsen/logrus to v1.10.0 ([#341](https://github.com/Zebradil/gke-kubeconfiger/issues/341)) ([6f4fd4f](https://github.com/Zebradil/gke-kubeconfiger/commit/6f4fd4f771bf2c37d419168f78db88ea02ebc5c1))
+
 ## [0.8.11](https://github.com/Zebradil/gke-kubeconfiger/compare/0.8.10...0.8.11) (2026-08-19)
 
 
