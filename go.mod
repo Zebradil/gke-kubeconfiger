@@ -6,7 +6,7 @@ toolchain go1.26.6
 
 require (
 	github.com/googleapis/gax-go/v2 v2.23.0
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	google.golang.org/api v0.293.0
