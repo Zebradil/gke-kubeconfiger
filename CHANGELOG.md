@@ -1,3 +1,10 @@
+## [0.8.23](https://github.com/Zebradil/gke-kubeconfiger/compare/0.8.22...0.8.23) (2026-10-02)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/googleapis/gax-go/v2 to v2.26.0 ([#358](https://github.com/Zebradil/gke-kubeconfiger/issues/358)) ([5c88d0e](https://github.com/Zebradil/gke-kubeconfiger/commit/5c88d0e7d64a54f433fe0b190dbffe9b02d18393))
+
 ## [0.8.22](https://github.com/Zebradil/gke-kubeconfiger/compare/0.8.21...0.8.22) (2026-09-29)
 
 
